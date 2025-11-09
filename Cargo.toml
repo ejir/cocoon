@@ -1,0 +1,15 @@
+[package]
+name = "bevy_sandbox_ragdoll"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = "0.15"
+bevy_rapier2d = "0.28"
+rand = "0.8"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
