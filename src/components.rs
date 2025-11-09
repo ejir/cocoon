@@ -16,6 +16,12 @@ pub struct Explosion {
 pub struct RagdollPart;
 
 #[derive(Component)]
+pub struct Health {
+    pub current: f32,
+    pub max: f32,
+}
+
+#[derive(Component)]
 pub struct Debris;
 
 #[derive(Component)]
@@ -33,6 +39,12 @@ pub struct ExplosionShockwave {
 
 #[derive(Component)]
 pub struct SmokeParticle {
+    pub lifetime: Timer,
+    pub velocity: Vec2,
+}
+
+#[derive(Component)]
+pub struct BloodParticle {
     pub lifetime: Timer,
     pub velocity: Vec2,
 }

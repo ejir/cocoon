@@ -2,15 +2,22 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use rand::Rng;
 
-use crate::components::{Debris, Explosion};
+use crate::blood::spawn_blood_particles;
+use crate::components::{Debris, Explosion, Health, RagdollPart};
 
 pub fn apply_explosion(
     mut commands: Commands,
     explosion_query: Query<(Entity, &Explosion)>,
-    mut physics_query: Query<(&Transform, &mut ExternalImpulse), With<RigidBody>>,
+    mut physics_query: Query<(
+        Entity,
+        &Transform,
+        &mut ExternalImpulse,
+        Option<&mut Health>,
+        Option<&RagdollPart>,
+    ), With<RigidBody>>,
 ) {
     for (explosion_entity, explosion) in explosion_query.iter() {
-        for (transform, mut impulse) in physics_query.iter_mut() {
+        for (entity, transform, mut impulse, health_opt, ragdoll_opt) in physics_query.iter_mut() {
             let pos = transform.translation.truncate();
             let delta = pos - explosion.position;
             let distance = delta.length();
@@ -25,6 +32,16 @@ pub fn apply_explosion(
                 let torque = rand::thread_rng().gen_range(-5000.0..5000.0)
                     * (1.0 - distance / explosion.radius);
                 impulse.torque_impulse += torque;
+
+                if let (Some(mut health), Some(_ragdoll)) = (health_opt, ragdoll_opt) {
+                    let damage = strength * 0.002;
+                    health.current -= damage;
+
+                    if health.current <= 0.0 {
+                        spawn_blood_particles(&mut commands, pos, direction * strength * 0.01);
+                        commands.entity(entity).despawn();
+                    }
+                }
             }
         }
 
