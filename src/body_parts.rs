@@ -73,5 +73,7 @@ pub fn create_joint(commands: &mut Commands, config: JointConfig) {
         .local_anchor2(config.child_anchor)
         .limits([config.min_angle, config.max_angle]);
 
-    commands.entity(config.child).insert(ImpulseJoint::new(config.parent, joint));
+    commands
+        .entity(config.child)
+        .insert(ImpulseJoint::new(config.parent, joint));
 }

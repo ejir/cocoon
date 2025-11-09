@@ -12,12 +12,12 @@ pub struct Particle {
     pub fade_mode: FadeMode,
     pub scale_mode: ScaleMode,
 }
-
+#[derive(Component, Clone)]
 pub enum FadeMode {
     Linear,
     Constant(f32),
 }
-
+#[derive(Component, Clone)]
 pub enum ScaleMode {
     None,
     GrowLinear(f32),
@@ -31,37 +31,38 @@ pub fn animate_particles(
 ) {
     for (entity, mut particle, mut transform, mut sprite) in query.iter_mut() {
         particle.lifetime.tick(time.delta());
-        
+
         transform.translation += particle.velocity.extend(0.0) * time.delta_secs();
-        
+
         particle.velocity.y += particle.gravity * time.delta_secs();
-        particle.velocity *= particle.drag;
-        
+        let drag = particle.drag;
+        particle.velocity *= drag;
+
         let progress = particle.lifetime.fraction();
-        
+
         match particle.scale_mode {
-            ScaleMode::None => {},
+            ScaleMode::None => {}
             ScaleMode::GrowLinear(max_scale) => {
                 let scale = 1.0 + progress * (max_scale - 1.0);
                 transform.scale = Vec3::splat(scale);
-            },
+            }
             ScaleMode::ShrinkLinear(min_scale) => {
                 let scale = 1.0 - progress * (1.0 - min_scale);
                 transform.scale = Vec3::splat(scale);
-            },
+            }
         }
-        
+
         match particle.fade_mode {
             FadeMode::Linear => {
                 let alpha = 1.0 - progress;
                 set_sprite_alpha(&mut sprite, alpha);
-            },
+            }
             FadeMode::Constant(alpha_multiplier) => {
                 let base_alpha = 1.0 - progress;
                 set_sprite_alpha(&mut sprite, base_alpha * alpha_multiplier);
-            },
+            }
         }
-        
+
         if particle.lifetime.finished() {
             commands.entity(entity).despawn();
         }
@@ -107,15 +108,15 @@ impl Default for ParticleSpawnConfig {
 
 pub fn spawn_particles(commands: &mut Commands, config: ParticleSpawnConfig) {
     let mut rng = rand::thread_rng();
-    
+
     for _ in 0..config.count {
         let size = rng.gen_range(config.size_range.0..config.size_range.1);
         let speed = rng.gen_range(config.speed_range.0..config.speed_range.1);
         let lifetime = rng.gen_range(config.lifetime_range.0..config.lifetime_range.1);
-        
+
         let color = (config.color_fn)(&mut rng);
         let velocity = (config.velocity_fn)(&mut rng, speed);
-        
+
         commands.spawn((
             Sprite {
                 color,
@@ -128,8 +129,8 @@ pub fn spawn_particles(commands: &mut Commands, config: ParticleSpawnConfig) {
                 velocity,
                 gravity: config.gravity,
                 drag: config.drag,
-                fade_mode: config.fade_mode,
-                scale_mode: config.scale_mode,
+                fade_mode: config.fade_mode.clone(),
+                scale_mode: config.scale_mode.clone(),
             },
         ));
     }

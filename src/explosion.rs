@@ -105,10 +105,7 @@ pub fn spawn_smoke_particles(commands: &mut Commands, position: Vec2) {
         let gray = rng.gen_range(0.2..0.5);
         let color = Color::srgba(gray, gray, gray, rng.gen_range(0.4..0.8));
 
-        let offset = Vec2::new(
-            rng.gen_range(-20.0..20.0),
-            rng.gen_range(-20.0..20.0),
-        );
+        let offset = Vec2::new(rng.gen_range(-20.0..20.0), rng.gen_range(-20.0..20.0));
 
         commands.spawn((
             Sprite {

@@ -10,17 +10,22 @@ use crate::wooden_box::WoodenBox;
 pub fn apply_explosion(
     mut commands: Commands,
     explosion_query: Query<(Entity, &Explosion)>,
-    mut physics_query: Query<(
-        Entity,
-        &Transform,
-        &mut ExternalImpulse,
-        Option<&mut Health>,
-        Option<&RagdollPart>,
-        Option<&WoodenBox>,
-    ), With<RigidBody>>,
+    mut physics_query: Query<
+        (
+            Entity,
+            &Transform,
+            &mut ExternalImpulse,
+            Option<&mut Health>,
+            Option<&RagdollPart>,
+            Option<&WoodenBox>,
+        ),
+        With<RigidBody>,
+    >,
 ) {
     for (explosion_entity, explosion) in explosion_query.iter() {
-        for (entity, transform, mut impulse, health_opt, ragdoll_opt, wooden_box_opt) in physics_query.iter_mut() {
+        for (entity, transform, mut impulse, health_opt, ragdoll_opt, wooden_box_opt) in
+            physics_query.iter_mut()
+        {
             let pos = transform.translation.truncate();
 
             let strength = apply_radial_impulse(
@@ -41,7 +46,11 @@ pub fn apply_explosion(
                         if health.current <= 0.0 {
                             if ragdoll_opt.is_some() {
                                 let direction = (pos - explosion.position).normalize();
-                                spawn_blood_particles(&mut commands, pos, direction * strength * 0.01);
+                                spawn_blood_particles(
+                                    &mut commands,
+                                    pos,
+                                    direction * strength * 0.01,
+                                );
                             }
                             commands.entity(entity).despawn();
                         }
@@ -65,7 +74,7 @@ pub fn cleanup_debris(
         }
 
         fade_sprite_alpha(&mut sprite, time.delta_secs() * 0.3);
-        
+
         let Srgba { alpha, .. } = sprite.color.to_srgba();
         if alpha <= 0.0 {
             commands.entity(entity).despawn();

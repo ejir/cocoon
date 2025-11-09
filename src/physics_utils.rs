@@ -37,7 +37,7 @@ pub fn spawn_physics_sprite(commands: &mut Commands, config: RigidBodyConfig) ->
         ColliderType::Cuboid => Collider::cuboid(config.size.x / 2.0, config.size.y / 2.0),
         ColliderType::Ball => Collider::ball(config.size.x / 2.0),
     };
-    
+
     let mut entity_commands = commands.spawn((
         Sprite {
             color: config.color,
@@ -50,15 +50,15 @@ pub fn spawn_physics_sprite(commands: &mut Commands, config: RigidBodyConfig) ->
         ColliderMassProperties::Density(config.density),
         ExternalImpulse::default(),
     ));
-    
+
     if let Some(restitution) = config.restitution {
         entity_commands.insert(Restitution::coefficient(restitution));
     }
-    
+
     if let Some(friction) = config.friction {
         entity_commands.insert(Friction::coefficient(friction));
     }
-    
+
     entity_commands.id()
 }
 
@@ -72,20 +72,20 @@ pub fn apply_radial_impulse(
 ) -> f32 {
     let delta = object_pos - explosion_pos;
     let distance = delta.length();
-    
+
     if distance < radius && distance > 0.1 {
         let direction = delta.normalize();
         let strength = (1.0 - distance / radius) * force;
         let force_vec = direction * strength;
-        
+
         impulse.impulse += force_vec;
-        
+
         if apply_torque {
             let torque = rand::random::<f32>() * 10000.0 - 5000.0;
             let torque_scaled = torque * (1.0 - distance / radius);
             impulse.torque_impulse += torque_scaled;
         }
-        
+
         strength
     } else {
         0.0
