@@ -3,6 +3,7 @@ use bevy_rapier2d::prelude::*;
 
 use crate::components::{Bomb, Explosion};
 use crate::constants::{BOMB_SPAWN_KEY, EXPLOSION_FORCE, EXPLOSION_RADIUS};
+use crate::drag::Draggable;
 use crate::explosion::{spawn_explosion_debris, spawn_explosion_visuals, spawn_smoke_particles};
 
 pub fn spawn_bomb_on_keypress(
@@ -41,6 +42,7 @@ fn spawn_bomb(commands: &mut Commands, position: Vec2) {
         Bomb {
             timer: Timer::from_seconds(2.0, TimerMode::Once),
         },
+        Draggable,
     ));
 }
 

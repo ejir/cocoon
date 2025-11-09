@@ -7,6 +7,7 @@ mod bomb;
 mod combustion;
 mod components;
 mod constants;
+mod drag;
 mod explosion;
 mod physics;
 mod ragdoll;
@@ -16,6 +17,7 @@ use animation::{animate_explosion_flash, animate_explosion_shockwave, animate_sm
 use blood::animate_blood_particles;
 use bomb::{bomb_timer_system, spawn_bomb_on_keypress};
 use combustion::{animate_fire_particles, apply_fire_damage, ignite_ragdoll_on_keypress, spread_fire};
+use drag::{end_drag_system, start_drag_system, update_drag_system, DragState};
 use physics::{apply_explosion, cleanup_debris};
 use ragdoll::spawn_ragdoll_on_keypress;
 use setup::setup;
@@ -32,6 +34,7 @@ fn main() {
         }))
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
         .add_plugins(RapierDebugRenderPlugin::default())
+        .init_resource::<DragState>()
         .add_systems(Startup, setup)
         .add_systems(
             Update,
@@ -49,6 +52,14 @@ fn main() {
                 apply_fire_damage,
                 spread_fire,
                 animate_fire_particles,
+            ),
+        )
+        .add_systems(
+            Update,
+            (
+                start_drag_system,
+                update_drag_system,
+                end_drag_system,
             ),
         )
         .run();
