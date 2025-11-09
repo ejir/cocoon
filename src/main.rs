@@ -4,6 +4,7 @@ use bevy_rapier2d::prelude::*;
 mod animation;
 mod blood;
 mod bomb;
+mod combustion;
 mod components;
 mod constants;
 mod explosion;
@@ -14,6 +15,7 @@ mod setup;
 use animation::{animate_explosion_flash, animate_explosion_shockwave, animate_smoke_particles};
 use blood::animate_blood_particles;
 use bomb::{bomb_timer_system, spawn_bomb_on_keypress};
+use combustion::{animate_fire_particles, apply_fire_damage, ignite_ragdoll_on_keypress, spread_fire};
 use physics::{apply_explosion, cleanup_debris};
 use ragdoll::spawn_ragdoll_on_keypress;
 use setup::setup;
@@ -43,6 +45,10 @@ fn main() {
                 animate_explosion_shockwave,
                 animate_smoke_particles,
                 animate_blood_particles,
+                ignite_ragdoll_on_keypress,
+                apply_fire_damage,
+                spread_fire,
+                animate_fire_particles,
             ),
         )
         .run();

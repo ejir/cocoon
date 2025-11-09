@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::components::{Health, RagdollPart};
+use crate::components::{Flammable, Health, RagdollPart};
 use crate::constants::RAGDOLL_SPAWN_KEY;
 
 pub fn spawn_ragdoll_on_keypress(
@@ -51,6 +51,9 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
                 current: 100.0,
                 max: 100.0,
             },
+            Flammable {
+                ignition_threshold: 0.5,
+            },
         ))
         .id();
 
@@ -74,6 +77,9 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
             Health {
                 current: 150.0,
                 max: 150.0,
+            },
+            Flammable {
+                ignition_threshold: 0.5,
             },
         ))
         .id();
@@ -99,6 +105,9 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
                 current: 80.0,
                 max: 80.0,
             },
+            Flammable {
+                ignition_threshold: 0.5,
+            },
         ))
         .id();
 
@@ -122,6 +131,9 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
             Health {
                 current: 70.0,
                 max: 70.0,
+            },
+            Flammable {
+                ignition_threshold: 0.5,
             },
         ))
         .id();
@@ -147,6 +159,9 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
                 current: 80.0,
                 max: 80.0,
             },
+            Flammable {
+                ignition_threshold: 0.5,
+            },
         ))
         .id();
 
@@ -170,6 +185,9 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
             Health {
                 current: 70.0,
                 max: 70.0,
+            },
+            Flammable {
+                ignition_threshold: 0.5,
             },
         ))
         .id();
@@ -195,6 +213,9 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
                 current: 90.0,
                 max: 90.0,
             },
+            Flammable {
+                ignition_threshold: 0.5,
+            },
         ))
         .id();
 
@@ -218,6 +239,9 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
             Health {
                 current: 80.0,
                 max: 80.0,
+            },
+            Flammable {
+                ignition_threshold: 0.5,
             },
         ))
         .id();
@@ -243,6 +267,9 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
                 current: 90.0,
                 max: 90.0,
             },
+            Flammable {
+                ignition_threshold: 0.5,
+            },
         ))
         .id();
 
@@ -266,6 +293,9 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
             Health {
                 current: 80.0,
                 max: 80.0,
+            },
+            Flammable {
+                ignition_threshold: 0.5,
             },
         ))
         .id();
