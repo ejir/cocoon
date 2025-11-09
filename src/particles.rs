@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use rand::Rng;
 
-use crate::utils::{fade_sprite_alpha, set_sprite_alpha};
+use crate::utils::set_sprite_alpha;
 
 #[derive(Component)]
 pub struct Particle {

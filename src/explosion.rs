@@ -2,40 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use rand::Rng;
 
-use crate::components::{Debris, ExplosionFlash, ExplosionShockwave, SmokeParticle};
-use crate::constants::EXPLOSION_RADIUS;
-
-pub fn spawn_explosion_visuals(commands: &mut Commands, position: Vec2) {
-    commands.spawn((
-        Sprite {
-            color: Color::srgba(1.0, 0.9, 0.3, 1.0),
-            custom_size: Some(Vec2::new(20.0, 20.0)),
-            ..default()
-        },
-        Transform::from_xyz(position.x, position.y, 1.0),
-        ExplosionFlash {
-            timer: Timer::from_seconds(0.2, TimerMode::Once),
-            max_scale: 15.0,
-        },
-    ));
-
-    for i in 0..3 {
-        let delay = i as f32 * 0.05;
-        commands.spawn((
-            Sprite {
-                color: Color::srgba(1.0, 0.6, 0.1, 0.8),
-                custom_size: Some(Vec2::new(10.0, 10.0)),
-                ..default()
-            },
-            Transform::from_xyz(position.x, position.y, 0.5),
-            ExplosionShockwave {
-                timer: Timer::from_seconds(0.5 + delay, TimerMode::Once),
-                max_radius: EXPLOSION_RADIUS * 1.2,
-                start_radius: 20.0,
-            },
-        ));
-    }
-}
+use crate::components::{Debris, SmokeParticle};
 
 pub fn spawn_explosion_debris(commands: &mut Commands, position: Vec2) {
     let mut rng = rand::thread_rng();
