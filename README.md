@@ -6,8 +6,9 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
 
 - **Physics-Driven Ragdolls**: Fully articulated humanoid ragdolls with realistic joint constraints
 - **Explosive Bombs**: Timed explosives with radial force application
-- **Combustion System**: Set ragdolls on fire with spreading flames and continuous damage
-- **Destructible Ragdolls**: Ragdoll parts can be destroyed by explosions with blood particle effects
+- **Wooden Boxes**: Destructible wooden boxes that can be damaged and destroyed by explosions and fire
+- **Combustion System**: Set ragdolls and wooden boxes on fire with spreading flames and continuous damage
+- **Destructible Objects**: Ragdoll parts and wooden boxes can be destroyed by explosions and fire
 - **Blood Effects**: Realistic blood particle system with physics and fade-out animations
 - **Fire Effects**: Dynamic fire particle system with realistic animations and spreading mechanics
 - **Multi-Object Interactions**: Realistic collisions, impulses, and constraints between all objects
@@ -17,8 +18,9 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
 
 - **R**: Spawn a ragdoll at cursor position
 - **B**: Spawn a bomb at cursor position (explodes after 2 seconds)
-- **F**: Ignite nearest ragdoll part near cursor (sets it on fire)
-- **Left Mouse Button**: Click and drag to move ragdoll parts and bombs
+- **W**: Spawn a wooden box at cursor position
+- **F**: Ignite nearest flammable object near cursor (sets it on fire)
+- **Left Mouse Button**: Click and drag to move ragdoll parts, bombs, and wooden boxes
 
 ## Technical Details
 
@@ -43,25 +45,36 @@ Bombs use a timer-based explosion system:
 1. Bomb spawns as a dynamic rigid body
 2. After 2 seconds, it explodes
 3. Applies radial impulse force to all nearby objects
-4. Damages ragdoll parts based on distance and explosion strength
+4. Damages ragdoll parts and wooden boxes based on distance and explosion strength
 5. Spawns visual debris, smoke, and blood particles
 6. Force and damage decrease with distance from explosion center
+
+### Wooden Box System
+
+Wooden boxes are destructible physics objects:
+1. Each box has 100 health points
+2. Can be damaged and destroyed by explosions
+3. Flammable - can be set on fire and will burn for 8 seconds
+4. Fire spreads from boxes to nearby flammable objects
+5. Realistic physics with wood-like density (0.8) and friction (0.7)
+6. Can be dragged and moved like other objects
+7. When destroyed by fire or explosions, the box is removed from the scene
 
 ### Combustion System
 
 The fire system provides realistic burning mechanics:
-1. Ragdoll parts can be ignited by clicking near them with the F key
-2. Fire continuously damages ragdoll parts over time (15 HP/sec)
-3. Fire spreads to nearby flammable body parts within 50 pixels
+1. Flammable objects (ragdoll parts and wooden boxes) can be ignited by clicking near them with the F key
+2. Fire continuously damages objects over time (15 HP/sec)
+3. Fire spreads to nearby flammable objects within 50 pixels
 4. Fire burns for 8 seconds by default before extinguishing
 5. Dynamic fire particle effects with varied colors (yellow, orange, red)
 6. Fire particles rise and fade out realistically
-7. Burning parts spawn blood particles when destroyed
+7. Burning ragdoll parts spawn blood particles when destroyed
 
 ### Drag System
 
 Interactive mouse-based object manipulation:
-1. Click and hold left mouse button on any ragdoll part or bomb to start dragging
+1. Click and hold left mouse button on any ragdoll part, bomb, or wooden box to start dragging
 2. Object temporarily becomes kinematic (unaffected by physics) while dragging
 3. Follows cursor position with offset from original click point
 4. Release mouse button to drop object and restore dynamic physics behavior
@@ -98,9 +111,10 @@ The game uses optimized compilation settings for fast development builds:
 
 ## Future Enhancements
 
-- Additional object types (boxes, platforms, ropes)
+- Additional object types (platforms, ropes, metal boxes)
 - More explosion effects and particle systems
 - Interactive tools (grab, pin, delete)
 - Different bomb types with varying power
 - Wound visualization on damaged body parts
+- Wood debris particles when boxes are destroyed
 - Save/load scene functionality

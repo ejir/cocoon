@@ -11,7 +11,7 @@ pub fn ignite_ragdoll_on_keypress(
     keyboard: Res<ButtonInput<KeyCode>>,
     windows: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
-    ragdoll_query: Query<(Entity, &Transform, &RagdollPart), Without<OnFire>>,
+    flammable_query: Query<(Entity, &Transform, &Flammable), Without<OnFire>>,
 ) {
     if keyboard.just_pressed(FIRE_SPAWN_KEY) {
         let window = windows.single();
@@ -22,7 +22,7 @@ pub fn ignite_ragdoll_on_keypress(
                 let mut closest_entity = None;
                 let mut closest_distance = f32::INFINITY;
 
-                for (entity, transform, _) in ragdoll_query.iter() {
+                for (entity, transform, _) in flammable_query.iter() {
                     let pos = transform.translation.truncate();
                     let distance = pos.distance(world_pos);
                     if distance < 100.0 && distance < closest_distance {

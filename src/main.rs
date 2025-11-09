@@ -12,6 +12,7 @@ mod explosion;
 mod physics;
 mod ragdoll;
 mod setup;
+mod wooden_box;
 
 use animation::{animate_explosion_flash, animate_explosion_shockwave, animate_smoke_particles};
 use blood::animate_blood_particles;
@@ -21,6 +22,7 @@ use drag::{end_drag_system, start_drag_system, update_drag_system, DragState};
 use physics::{apply_explosion, cleanup_debris};
 use ragdoll::spawn_ragdoll_on_keypress;
 use setup::setup;
+use wooden_box::spawn_wooden_box_on_keypress;
 
 fn main() {
     App::new()
@@ -41,6 +43,7 @@ fn main() {
             (
                 spawn_ragdoll_on_keypress,
                 spawn_bomb_on_keypress,
+                spawn_wooden_box_on_keypress,
                 bomb_timer_system,
                 apply_explosion,
                 cleanup_debris,
