@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use rand::Rng;
 
-use crate::utils::{fade_sprite_alpha, set_sprite_alpha};
+use crate::utils::set_sprite_alpha;
 
 #[derive(Component)]
 pub struct Particle {
@@ -13,11 +13,13 @@ pub struct Particle {
     pub scale_mode: ScaleMode,
 }
 
+#[derive(Clone, Copy)]
 pub enum FadeMode {
     Linear,
     Constant(f32),
 }
 
+#[derive(Clone, Copy)]
 pub enum ScaleMode {
     None,
     GrowLinear(f32),
@@ -34,8 +36,10 @@ pub fn animate_particles(
         
         transform.translation += particle.velocity.extend(0.0) * time.delta_secs();
         
-        particle.velocity.y += particle.gravity * time.delta_secs();
-        particle.velocity *= particle.drag;
+        let drag = particle.drag;
+        let gravity = particle.gravity;
+        particle.velocity.y += gravity * time.delta_secs();
+        particle.velocity *= drag;
         
         let progress = particle.lifetime.fraction();
         

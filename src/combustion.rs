@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy_rapier2d::prelude::*;
 use rand::Rng;
 
 use crate::blood::spawn_blood_particles;

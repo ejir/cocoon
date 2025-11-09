@@ -1,10 +1,11 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::components::{Bomb, Explosion};
-use crate::constants::{BOMB_SPAWN_KEY, EXPLOSION_FORCE, EXPLOSION_RADIUS};
+use crate::components::Bomb;
+use crate::constants::{BOMB_SPAWN_KEY, EXPLOSION_RADIUS};
 use crate::drag::Draggable;
-use crate::explosion::{spawn_explosion_debris, spawn_explosion_visuals, spawn_smoke_particles};
+use crate::explosion::{spawn_explosion_debris, spawn_smoke_particles};
+use crate::shockwave::{spawn_shockwave, spawn_shockwave_visuals};
 use crate::utils::get_cursor_world_position;
 
 pub fn spawn_bomb_on_keypress(
@@ -55,13 +56,10 @@ pub fn bomb_timer_system(
 
             commands.entity(entity).despawn();
 
-            commands.spawn(Explosion {
-                position,
-                radius: EXPLOSION_RADIUS,
-                force: EXPLOSION_FORCE,
-            });
-
-            spawn_explosion_visuals(&mut commands, position);
+            let peak_pressure = 80000.0;
+            spawn_shockwave(&mut commands, position, EXPLOSION_RADIUS, peak_pressure);
+            
+            spawn_shockwave_visuals(&mut commands, position, EXPLOSION_RADIUS);
             spawn_explosion_debris(&mut commands, position);
             spawn_smoke_particles(&mut commands, position);
         }

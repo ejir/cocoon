@@ -5,7 +5,7 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
 ## Features
 
 - **Physics-Driven Ragdolls**: Fully articulated humanoid ragdolls with realistic joint constraints
-- **Explosive Bombs**: Timed explosives with radial force application
+- **Realistic Shockwave Explosions**: Timed explosives with propagating shockwaves, pressure-based damage, and physics
 - **Wooden Boxes**: Destructible wooden boxes that can be damaged and destroyed by explosions and fire
 - **Combustion System**: Set ragdolls and wooden boxes on fire with spreading flames and continuous damage
 - **Destructible Objects**: Ragdoll parts and wooden boxes can be destroyed by explosions and fire
@@ -13,6 +13,7 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
 - **Fire Effects**: Dynamic fire particle system with realistic animations and spreading mechanics
 - **Multi-Object Interactions**: Realistic collisions, impulses, and constraints between all objects
 - **Realistic Physics**: Powered by Rapier2D physics engine with proper mass, damping, and gravity
+- **Advanced Explosion Visuals**: Multi-layered shockwave rings with realistic expansion and fading
 
 ## Controls
 
@@ -41,13 +42,24 @@ Each body part has its own health system:
 
 ### Bomb System
 
-Bombs use a timer-based explosion system:
+Bombs use a realistic shockwave-based explosion system:
 1. Bomb spawns as a dynamic rigid body
-2. After 2 seconds, it explodes
-3. Applies radial impulse force to all nearby objects
-4. Damages ragdoll parts and wooden boxes based on distance and explosion strength
-5. Spawns visual debris, smoke, and blood particles
-6. Force and damage decrease with distance from explosion center
+2. After 2 seconds, it explodes and generates a shockwave
+3. **Realistic Shockwave Physics**:
+   - Shockwave propagates outward at 1200 pixels/second (simulating ~340 m/s sound speed)
+   - Peak pressure of 80,000 units applied to objects in the wave front
+   - Pressure decays realistically with distance using inverse square law
+   - Wave has physical thickness (80 pixels) for realistic interaction
+4. **Dynamic Force Application**:
+   - Force considers object mass and cross-sectional area
+   - Larger objects experience more force (pressure × area)
+   - Torque applied based on distance and randomization for realistic tumbling
+5. **Advanced Damage Model**:
+   - Damage based on pressure and induced velocity
+   - Accounts for mass-dependent acceleration effects
+   - Higher velocity changes cause additional damage
+6. Spawns visual debris, smoke, blood particles, and shockwave rings
+7. Multiple overlapping shockwave visual effects for realistic appearance
 
 ### Wooden Box System
 

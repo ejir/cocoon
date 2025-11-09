@@ -16,6 +16,7 @@ mod physics;
 mod physics_utils;
 mod ragdoll;
 mod setup;
+mod shockwave;
 mod utils;
 mod wooden_box;
 
@@ -27,6 +28,7 @@ use drag::{end_drag_system, start_drag_system, update_drag_system, DragState};
 use physics::{apply_explosion, cleanup_debris};
 use ragdoll::spawn_ragdoll_on_keypress;
 use setup::setup;
+use shockwave::{animate_explosion_core, animate_shockwave_visual, update_shockwave};
 use wooden_box::spawn_wooden_box_on_keypress;
 
 fn main() {
@@ -51,11 +53,14 @@ fn main() {
                 spawn_wooden_box_on_keypress,
                 bomb_timer_system,
                 apply_explosion,
+                update_shockwave,
                 cleanup_debris,
                 animate_explosion_flash,
                 animate_explosion_shockwave,
                 animate_smoke_particles,
                 animate_blood_particles,
+                animate_shockwave_visual,
+                animate_explosion_core,
                 ignite_ragdoll_on_keypress,
                 apply_fire_damage,
                 spread_fire,

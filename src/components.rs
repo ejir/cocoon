@@ -13,6 +13,17 @@ pub struct Explosion {
 }
 
 #[derive(Component)]
+pub struct ShockwaveRing {
+    pub origin: Vec2,
+    pub current_radius: f32,
+    pub max_radius: f32,
+    pub peak_pressure: f32,
+    pub wave_speed: f32,
+    pub wave_thickness: f32,
+    pub lifetime: Timer,
+}
+
+#[derive(Component)]
 pub struct RagdollPart;
 
 #[derive(Component)]
