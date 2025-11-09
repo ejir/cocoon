@@ -60,7 +60,8 @@ fn main() {
                 start_drag_system,
                 update_drag_system,
                 end_drag_system,
-            ),
+            )
+                .chain(),
         )
         .run();
 }
