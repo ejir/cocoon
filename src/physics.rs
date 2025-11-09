@@ -4,6 +4,7 @@ use rand::Rng;
 
 use crate::blood::spawn_blood_particles;
 use crate::components::{Debris, Explosion, Health, RagdollPart};
+use crate::wooden_box::WoodenBox;
 
 pub fn apply_explosion(
     mut commands: Commands,
@@ -14,10 +15,11 @@ pub fn apply_explosion(
         &mut ExternalImpulse,
         Option<&mut Health>,
         Option<&RagdollPart>,
+        Option<&WoodenBox>,
     ), With<RigidBody>>,
 ) {
     for (explosion_entity, explosion) in explosion_query.iter() {
-        for (entity, transform, mut impulse, health_opt, ragdoll_opt) in physics_query.iter_mut() {
+        for (entity, transform, mut impulse, health_opt, ragdoll_opt, wooden_box_opt) in physics_query.iter_mut() {
             let pos = transform.translation.truncate();
             let delta = pos - explosion.position;
             let distance = delta.length();
@@ -33,13 +35,17 @@ pub fn apply_explosion(
                     * (1.0 - distance / explosion.radius);
                 impulse.torque_impulse += torque;
 
-                if let (Some(mut health), Some(_ragdoll)) = (health_opt, ragdoll_opt) {
-                    let damage = strength * 0.002;
-                    health.current -= damage;
+                if let Some(mut health) = health_opt {
+                    if ragdoll_opt.is_some() || wooden_box_opt.is_some() {
+                        let damage = strength * 0.002;
+                        health.current -= damage;
 
-                    if health.current <= 0.0 {
-                        spawn_blood_particles(&mut commands, pos, direction * strength * 0.01);
-                        commands.entity(entity).despawn();
+                        if health.current <= 0.0 {
+                            if ragdoll_opt.is_some() {
+                                spawn_blood_particles(&mut commands, pos, direction * strength * 0.01);
+                            }
+                            commands.entity(entity).despawn();
+                        }
                     }
                 }
             }
