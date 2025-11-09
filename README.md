@@ -6,6 +6,8 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
 
 - **Physics-Driven Ragdolls**: Fully articulated humanoid ragdolls with realistic joint constraints
 - **Explosive Bombs**: Timed explosives with radial force application
+- **Destructible Ragdolls**: Ragdoll parts can be destroyed by explosions with blood particle effects
+- **Blood Effects**: Realistic blood particle system with physics and fade-out animations
 - **Multi-Object Interactions**: Realistic collisions, impulses, and constraints between all objects
 - **Realistic Physics**: Powered by Rapier2D physics engine with proper mass, damping, and gravity
 
@@ -26,14 +28,20 @@ Each ragdoll consists of 9 body parts connected with revolute joints:
 
 Joints have realistic angle limits to simulate anatomical constraints.
 
+Each body part has its own health system:
+- Parts can be damaged and destroyed by explosions
+- Health values vary by body part (torso has the most health)
+- When destroyed, parts spawn blood particle effects and are removed from the scene
+
 ### Bomb System
 
 Bombs use a timer-based explosion system:
 1. Bomb spawns as a dynamic rigid body
 2. After 2 seconds, it explodes
 3. Applies radial impulse force to all nearby objects
-4. Spawns visual debris particles
-5. Force decreases with distance from explosion center
+4. Damages ragdoll parts based on distance and explosion strength
+5. Spawns visual debris, smoke, and blood particles
+6. Force and damage decrease with distance from explosion center
 
 ### Physics Configuration
 
@@ -70,5 +78,5 @@ The game uses optimized compilation settings for fast development builds:
 - More explosion effects and particle systems
 - Interactive tools (grab, pin, delete)
 - Different bomb types with varying power
-- Damage system for ragdoll parts
+- Wound visualization on damaged body parts
 - Save/load scene functionality
