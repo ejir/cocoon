@@ -6,8 +6,10 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
 
 - **Physics-Driven Ragdolls**: Fully articulated humanoid ragdolls with realistic joint constraints
 - **Explosive Bombs**: Timed explosives with radial force application
+- **Combustion System**: Set ragdolls on fire with spreading flames and continuous damage
 - **Destructible Ragdolls**: Ragdoll parts can be destroyed by explosions with blood particle effects
 - **Blood Effects**: Realistic blood particle system with physics and fade-out animations
+- **Fire Effects**: Dynamic fire particle system with realistic animations and spreading mechanics
 - **Multi-Object Interactions**: Realistic collisions, impulses, and constraints between all objects
 - **Realistic Physics**: Powered by Rapier2D physics engine with proper mass, damping, and gravity
 
@@ -15,6 +17,7 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
 
 - **R**: Spawn a ragdoll at cursor position
 - **B**: Spawn a bomb at cursor position (explodes after 2 seconds)
+- **F**: Ignite nearest ragdoll part near cursor (sets it on fire)
 
 ## Technical Details
 
@@ -42,6 +45,17 @@ Bombs use a timer-based explosion system:
 4. Damages ragdoll parts based on distance and explosion strength
 5. Spawns visual debris, smoke, and blood particles
 6. Force and damage decrease with distance from explosion center
+
+### Combustion System
+
+The fire system provides realistic burning mechanics:
+1. Ragdoll parts can be ignited by clicking near them with the F key
+2. Fire continuously damages ragdoll parts over time (15 HP/sec)
+3. Fire spreads to nearby flammable body parts within 50 pixels
+4. Fire burns for 8 seconds by default before extinguishing
+5. Dynamic fire particle effects with varied colors (yellow, orange, red)
+6. Fire particles rise and fade out realistically
+7. Burning parts spawn blood particles when destroyed
 
 ### Physics Configuration
 

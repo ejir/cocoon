@@ -1,34 +1,38 @@
 # Code Refactoring Summary
 
 ## Overview
-The original `main.rs` (784 lines) has been refactored into 10 well-organized modules following Rust best practices.
+The original `main.rs` (784 lines) has been refactored into 11 well-organized modules following Rust best practices.
 
 ## Module Structure
 
-### `main.rs` (50 lines)
+### `main.rs` (56 lines)
 - App configuration and plugin setup
 - System registration
 - Entry point for the application
 
-### `constants.rs` (7 lines)
+### `constants.rs` (11 lines)
 - `EXPLOSION_RADIUS`, `EXPLOSION_FORCE`
-- Keyboard constants: `RAGDOLL_SPAWN_KEY`, `BOMB_SPAWN_KEY`
+- Fire constants: `FIRE_DAMAGE_PER_SEC`, `FIRE_SPREAD_RADIUS`, `FIRE_DURATION`
+- Keyboard constants: `RAGDOLL_SPAWN_KEY`, `BOMB_SPAWN_KEY`, `FIRE_SPAWN_KEY`
 
-### `components.rs` (51 lines)
+### `components.rs` (68 lines)
 - All ECS component definitions:
   - `Bomb`, `Explosion`, `RagdollPart`, `Debris`
   - `Health` - Health system for ragdoll parts
   - `ExplosionFlash`, `ExplosionShockwave`, `SmokeParticle`
   - `BloodParticle` - Blood particle system
+  - `OnFire` - Marks entities that are burning with intensity and duration
+  - `Flammable` - Marks entities that can catch fire
+  - `FireParticle` - Fire particle system
 
 ### `setup.rs` (65 lines)
 - Initial scene setup
 - Ground and wall spawning
 - UI text setup
 
-### `ragdoll.rs` (370 lines)
+### `ragdoll.rs` (389 lines)
 - Ragdoll spawning system
-- Body part creation logic with health values
+- Body part creation logic with health values and flammable properties
 - Joint creation and configuration
 
 ### `bomb.rs` (72 lines)
@@ -56,6 +60,13 @@ The original `main.rs` (784 lines) has been refactored into 10 well-organized mo
 - Flash animation system
 - Shockwave animation system
 - Smoke particle animation system
+
+### `combustion.rs` (171 lines)
+- Ragdoll ignition system on keypress
+- Fire damage application over time
+- Fire spreading to nearby flammable parts
+- Fire particle spawning and animation
+- Fire particle effects with realistic physics
 
 ## Benefits
 

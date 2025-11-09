@@ -48,3 +48,20 @@ pub struct BloodParticle {
     pub lifetime: Timer,
     pub velocity: Vec2,
 }
+
+#[derive(Component)]
+pub struct OnFire {
+    pub intensity: f32,
+    pub duration: Timer,
+}
+
+#[derive(Component)]
+pub struct Flammable {
+    pub ignition_threshold: f32,
+}
+
+#[derive(Component)]
+pub struct FireParticle {
+    pub lifetime: Timer,
+    pub velocity: Vec2,
+}
