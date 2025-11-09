@@ -3,6 +3,7 @@ use bevy_rapier2d::prelude::*;
 
 use crate::blood::spawn_blood_particles;
 use crate::components::{Health, RagdollPart, ShockwaveRing};
+use crate::explosion::spawn_object_fragments;
 use crate::wooden_box::WoodenBox;
 
 pub fn spawn_shockwave(commands: &mut Commands, position: Vec2, max_radius: f32, peak_pressure: f32) {
@@ -29,6 +30,8 @@ pub fn update_shockwave(
         Option<&RagdollPart>,
         Option<&WoodenBox>,
         Option<&ReadMassProperties>,
+        Option<&Sprite>,
+        Option<&Velocity>,
     ), With<RigidBody>>,
 ) {
     for (shockwave_entity, mut shockwave) in shockwave_query.iter_mut() {
@@ -44,7 +47,7 @@ pub fn update_shockwave(
             continue;
         }
         
-        for (entity, transform, mut impulse, health_opt, ragdoll_opt, wooden_box_opt, mass_props_opt) in physics_query.iter_mut() {
+        for (entity, transform, mut impulse, health_opt, ragdoll_opt, wooden_box_opt, mass_props_opt, sprite_opt, velocity_opt) in physics_query.iter_mut() {
             let pos = transform.translation.truncate();
             let distance = pos.distance(shockwave.origin);
             
@@ -91,10 +94,29 @@ pub fn update_shockwave(
                         health.current -= damage;
                         
                         if health.current <= 0.0 {
+                            let current_velocity = velocity_opt
+                                .map(|v| v.linvel)
+                                .unwrap_or(direction * (pressure * 0.3).min(500.0));
+                            
+                            if let Some(sprite) = sprite_opt {
+                                let size = sprite.custom_size.unwrap_or(Vec2::new(20.0, 20.0));
+                                let color = sprite.color;
+                                
+                                spawn_object_fragments(
+                                    &mut commands,
+                                    pos,
+                                    size,
+                                    color,
+                                    current_velocity,
+                                    wooden_box_opt.is_some(),
+                                );
+                            }
+                            
                             if ragdoll_opt.is_some() {
                                 let blood_velocity = direction * (pressure * 0.5).min(800.0);
                                 spawn_blood_particles(&mut commands, pos, blood_velocity);
                             }
+                            
                             commands.entity(entity).despawn();
                         }
                     }
