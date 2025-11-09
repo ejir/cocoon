@@ -155,6 +155,7 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
                 linear_damping: 0.2,
                 angular_damping: 0.5,
             },
+            ExternalImpulse::default(),
             RagdollPart,
         ))
         .id();
@@ -174,6 +175,7 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
                 linear_damping: 0.2,
                 angular_damping: 0.5,
             },
+            ExternalImpulse::default(),
             RagdollPart,
         ))
         .id();
@@ -193,6 +195,7 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
                 linear_damping: 0.3,
                 angular_damping: 0.6,
             },
+            ExternalImpulse::default(),
             RagdollPart,
         ))
         .id();
@@ -212,6 +215,7 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
                 linear_damping: 0.3,
                 angular_damping: 0.6,
             },
+            ExternalImpulse::default(),
             RagdollPart,
         ))
         .id();
@@ -231,6 +235,7 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
                 linear_damping: 0.3,
                 angular_damping: 0.6,
             },
+            ExternalImpulse::default(),
             RagdollPart,
         ))
         .id();
@@ -250,6 +255,7 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
                 linear_damping: 0.3,
                 angular_damping: 0.6,
             },
+            ExternalImpulse::default(),
             RagdollPart,
         ))
         .id();
@@ -269,6 +275,7 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
                 linear_damping: 0.3,
                 angular_damping: 0.6,
             },
+            ExternalImpulse::default(),
             RagdollPart,
         ))
         .id();
@@ -288,6 +295,7 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
                 linear_damping: 0.3,
                 angular_damping: 0.6,
             },
+            ExternalImpulse::default(),
             RagdollPart,
         ))
         .id();
@@ -307,6 +315,7 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
                 linear_damping: 0.3,
                 angular_damping: 0.6,
             },
+            ExternalImpulse::default(),
             RagdollPart,
         ))
         .id();
@@ -326,6 +335,7 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
                 linear_damping: 0.3,
                 angular_damping: 0.6,
             },
+            ExternalImpulse::default(),
             RagdollPart,
         ))
         .id();
@@ -470,6 +480,7 @@ fn spawn_bomb(commands: &mut Commands, position: Vec2) {
         Collider::ball(radius),
         ColliderMassProperties::Density(2.0),
         Restitution::coefficient(0.5),
+        ExternalImpulse::default(),
         Bomb {
             timer: Timer::from_seconds(2.0, TimerMode::Once),
         },
@@ -526,6 +537,7 @@ fn spawn_explosion_debris(commands: &mut Commands, position: Vec2) {
             Collider::ball(size / 2.0),
             Velocity::linear(velocity),
             ColliderMassProperties::Density(0.5),
+            ExternalImpulse::default(),
             Debris,
         ));
     }
