@@ -3,15 +3,20 @@ use bevy_rapier2d::prelude::*;
 
 mod animation;
 mod blood;
+mod body_parts;
 mod bomb;
 mod combustion;
 mod components;
 mod constants;
 mod drag;
+mod entity_finder;
 mod explosion;
+mod particles;
 mod physics;
+mod physics_utils;
 mod ragdoll;
 mod setup;
+mod utils;
 mod wooden_box;
 
 use animation::{animate_explosion_flash, animate_explosion_shockwave, animate_smoke_particles};

@@ -1,9 +1,10 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
-use rand::Rng;
 
 use crate::blood::spawn_blood_particles;
 use crate::components::{Debris, Explosion, Health, RagdollPart};
+use crate::physics_utils::apply_radial_impulse;
+use crate::utils::fade_sprite_alpha;
 use crate::wooden_box::WoodenBox;
 
 pub fn apply_explosion(
@@ -21,20 +22,17 @@ pub fn apply_explosion(
     for (explosion_entity, explosion) in explosion_query.iter() {
         for (entity, transform, mut impulse, health_opt, ragdoll_opt, wooden_box_opt) in physics_query.iter_mut() {
             let pos = transform.translation.truncate();
-            let delta = pos - explosion.position;
-            let distance = delta.length();
 
-            if distance < explosion.radius && distance > 0.1 {
-                let direction = delta.normalize();
-                let strength = (1.0 - distance / explosion.radius) * explosion.force;
-                let force = direction * strength;
+            let strength = apply_radial_impulse(
+                &mut impulse,
+                pos,
+                explosion.position,
+                explosion.radius,
+                explosion.force,
+                true,
+            );
 
-                impulse.impulse += force;
-
-                let torque = rand::thread_rng().gen_range(-5000.0..5000.0)
-                    * (1.0 - distance / explosion.radius);
-                impulse.torque_impulse += torque;
-
+            if strength > 0.0 {
                 if let Some(mut health) = health_opt {
                     if ragdoll_opt.is_some() || wooden_box_opt.is_some() {
                         let damage = strength * 0.002;
@@ -42,6 +40,7 @@ pub fn apply_explosion(
 
                         if health.current <= 0.0 {
                             if ragdoll_opt.is_some() {
+                                let direction = (pos - explosion.position).normalize();
                                 spawn_blood_particles(&mut commands, pos, direction * strength * 0.01);
                             }
                             commands.entity(entity).despawn();
@@ -65,12 +64,11 @@ pub fn cleanup_debris(
             commands.entity(entity).despawn();
         }
 
-        let Srgba { red, green, blue, alpha } = sprite.color.to_srgba();
-        let new_alpha = alpha - time.delta_secs() * 0.3;
-        if new_alpha <= 0.0 {
+        fade_sprite_alpha(&mut sprite, time.delta_secs() * 0.3);
+        
+        let Srgba { alpha, .. } = sprite.color.to_srgba();
+        if alpha <= 0.0 {
             commands.entity(entity).despawn();
-        } else {
-            sprite.color = Color::srgba(red, green, blue, new_alpha);
         }
     }
 }
