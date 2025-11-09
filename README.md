@@ -18,6 +18,7 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
 - **R**: Spawn a ragdoll at cursor position
 - **B**: Spawn a bomb at cursor position (explodes after 2 seconds)
 - **F**: Ignite nearest ragdoll part near cursor (sets it on fire)
+- **Left Mouse Button**: Click and drag to move ragdoll parts and bombs
 
 ## Technical Details
 
@@ -56,6 +57,15 @@ The fire system provides realistic burning mechanics:
 5. Dynamic fire particle effects with varied colors (yellow, orange, red)
 6. Fire particles rise and fade out realistically
 7. Burning parts spawn blood particles when destroyed
+
+### Drag System
+
+Interactive mouse-based object manipulation:
+1. Click and hold left mouse button on any ragdoll part or bomb to start dragging
+2. Object temporarily becomes kinematic (unaffected by physics) while dragging
+3. Follows cursor position with offset from original click point
+4. Release mouse button to drop object and restore dynamic physics behavior
+5. Supports dragging individual ragdoll parts - joints remain connected
 
 ### Physics Configuration
 

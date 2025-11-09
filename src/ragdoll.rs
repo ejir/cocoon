@@ -3,6 +3,7 @@ use bevy_rapier2d::prelude::*;
 
 use crate::components::{Flammable, Health, RagdollPart};
 use crate::constants::RAGDOLL_SPAWN_KEY;
+use crate::drag::Draggable;
 
 pub fn spawn_ragdoll_on_keypress(
     mut commands: Commands,
@@ -54,6 +55,7 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
             Flammable {
                 ignition_threshold: 0.5,
             },
+            Draggable,
         ))
         .id();
 
@@ -81,6 +83,7 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
             Flammable {
                 ignition_threshold: 0.5,
             },
+            Draggable,
         ))
         .id();
 
@@ -108,6 +111,7 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
             Flammable {
                 ignition_threshold: 0.5,
             },
+            Draggable,
         ))
         .id();
 
@@ -135,6 +139,7 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
             Flammable {
                 ignition_threshold: 0.5,
             },
+            Draggable,
         ))
         .id();
 
@@ -162,6 +167,7 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
             Flammable {
                 ignition_threshold: 0.5,
             },
+            Draggable,
         ))
         .id();
 
@@ -189,6 +195,7 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
             Flammable {
                 ignition_threshold: 0.5,
             },
+            Draggable,
         ))
         .id();
 
@@ -216,6 +223,7 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
             Flammable {
                 ignition_threshold: 0.5,
             },
+            Draggable,
         ))
         .id();
 
@@ -243,6 +251,7 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
             Flammable {
                 ignition_threshold: 0.5,
             },
+            Draggable,
         ))
         .id();
 
@@ -270,6 +279,7 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
             Flammable {
                 ignition_threshold: 0.5,
             },
+            Draggable,
         ))
         .id();
 
@@ -297,6 +307,7 @@ fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
             Flammable {
                 ignition_threshold: 0.5,
             },
+            Draggable,
         ))
         .id();
 
