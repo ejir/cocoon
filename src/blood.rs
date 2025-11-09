@@ -71,7 +71,8 @@ pub fn animate_blood_particles(
 
             particle.velocity.y -= 400.0 * time.delta_secs();
 
-            let progress = particle.lifetime.elapsed_secs() / particle.lifetime.duration().as_secs_f32();
+            let progress =
+                particle.lifetime.elapsed_secs() / particle.lifetime.duration().as_secs_f32();
             let new_alpha = 1.0 - progress;
             set_sprite_alpha(&mut sprite, new_alpha);
         }

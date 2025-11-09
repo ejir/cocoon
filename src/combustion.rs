@@ -29,7 +29,13 @@ pub fn ignite_ragdoll_on_keypress(
 pub fn apply_fire_damage(
     mut commands: Commands,
     time: Res<Time>,
-    mut fire_query: Query<(Entity, &Transform, &mut OnFire, &mut Health, Option<&RagdollPart>)>,
+    mut fire_query: Query<(
+        Entity,
+        &Transform,
+        &mut OnFire,
+        &mut Health,
+        Option<&RagdollPart>,
+    )>,
 ) {
     for (entity, transform, mut on_fire, mut health, ragdoll_opt) in fire_query.iter_mut() {
         on_fire.duration.tick(time.delta());
@@ -71,7 +77,8 @@ pub fn spread_fire(
             let distance = fire_pos.distance(pos);
 
             if distance < FIRE_SPREAD_RADIUS {
-                let spread_chance = (1.0 - distance / FIRE_SPREAD_RADIUS) * on_fire.intensity * 0.01;
+                let spread_chance =
+                    (1.0 - distance / FIRE_SPREAD_RADIUS) * on_fire.intensity * 0.01;
                 if rand::thread_rng().gen::<f32>() < spread_chance {
                     commands.entity(entity).insert(OnFire {
                         intensity: on_fire.intensity * 0.8,

@@ -28,7 +28,7 @@ pub fn start_drag_system(
             for (entity, transform, body) in draggable_query.iter() {
                 let object_pos = transform.translation.truncate();
                 let distance = object_pos.distance(world_pos);
-                
+
                 let max_radius = 50.0;
 
                 if distance < max_radius && distance < closest_distance {
@@ -57,11 +57,11 @@ pub fn update_drag_system(
         if let Ok((mut transform, mut body, mut velocity)) = draggable_query.get_mut(entity) {
             if let Some(world_pos) = get_cursor_world_position(&windows, &camera_q) {
                 *body = RigidBody::KinematicPositionBased;
-                
+
                 let target_pos = world_pos + drag_state.drag_offset;
                 transform.translation.x = target_pos.x;
                 transform.translation.y = target_pos.y;
-                
+
                 velocity.linvel = Vec2::ZERO;
                 velocity.angvel = 0.0;
             }
@@ -81,7 +81,7 @@ pub fn end_drag_system(
                     *body = original_body;
                 }
             }
-            
+
             drag_state.dragging_entity = None;
             drag_state.original_body_type = None;
             drag_state.drag_offset = Vec2::ZERO;
