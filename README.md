@@ -5,6 +5,10 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
 ## Features
 
 - **Physics-Driven Ragdolls**: Fully articulated humanoid ragdolls with realistic joint constraints
+- **Fracture & Dismemberment System**: Body parts can fracture and limbs can be torn off by explosions, impacts, and external forces
+  - Joints have health and can be damaged by explosions, collisions, and excessive stress
+  - Fractured body parts darken visually to show damage
+  - When joint health reaches zero, limbs detach from the body with blood effects
 - **Realistic Shockwave Explosions**: Timed explosives with propagating shockwaves, pressure-based damage, and physics
 - **Wooden Boxes**: Destructible wooden boxes that can be damaged and destroyed by explosions and fire
 - **Combustion System**: Set ragdolls and wooden boxes on fire with spreading flames and continuous damage
@@ -39,6 +43,23 @@ Each body part has its own health system:
 - Parts can be damaged and destroyed by explosions
 - Health values vary by body part (torso has the most health)
 - When destroyed, parts spawn blood particle effects and are removed from the scene
+
+### Fracture & Dismemberment System
+
+Joints connecting body parts have health and can be damaged by various forces:
+1. **Shockwave Damage**: Explosion shockwaves apply pressure-based damage to joints
+2. **Collision Damage**: High-velocity impacts (>200 units/sec) damage joints
+3. **Stress Damage**: Large velocity differences between connected parts cause joint stress
+4. **Impact Detection**: Sudden velocity changes (>300 units/sec) indicate impacts
+
+Joint damage mechanics:
+- Each joint starts with 100 health points
+- When joint health drops below 50%, the body part becomes "fractured" (darkens visually)
+- When joint health reaches 0, the joint breaks completely:
+  - The ImpulseJoint constraint is removed
+  - The limb detaches from the body
+  - Blood particles spawn at the separation point
+  - The detached limb continues as an independent physics object
 
 ### Bomb System
 

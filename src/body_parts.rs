@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
 use crate::components::{Flammable, Health, RagdollPart};
+use crate::damage::JointHealth;
 use crate::drag::Draggable;
 
 pub struct BodyPartConfig {
@@ -75,5 +76,12 @@ pub fn create_joint(commands: &mut Commands, config: JointConfig) {
 
     commands
         .entity(config.child)
-        .insert(ImpulseJoint::new(config.parent, joint));
+        .insert((
+            ImpulseJoint::new(config.parent, joint),
+            JointHealth {
+                current: 100.0,
+                max: 100.0,
+                parent_entity: config.parent,
+            },
+        ));
 }
