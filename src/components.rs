@@ -1,0 +1,38 @@
+use bevy::prelude::*;
+
+#[derive(Component)]
+pub struct Bomb {
+    pub timer: Timer,
+}
+
+#[derive(Component)]
+pub struct Explosion {
+    pub position: Vec2,
+    pub radius: f32,
+    pub force: f32,
+}
+
+#[derive(Component)]
+pub struct RagdollPart;
+
+#[derive(Component)]
+pub struct Debris;
+
+#[derive(Component)]
+pub struct ExplosionFlash {
+    pub timer: Timer,
+    pub max_scale: f32,
+}
+
+#[derive(Component)]
+pub struct ExplosionShockwave {
+    pub timer: Timer,
+    pub max_radius: f32,
+    pub start_radius: f32,
+}
+
+#[derive(Component)]
+pub struct SmokeParticle {
+    pub lifetime: Timer,
+    pub velocity: Vec2,
+}
