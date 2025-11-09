@@ -3,6 +3,7 @@ use bevy_rapier2d::prelude::*;
 
 use crate::blood::spawn_blood_particles;
 use crate::components::{Health, RagdollPart, ShockwaveRing};
+use crate::damage::{Fractured, JointHealth};
 use crate::explosion::spawn_object_fragments;
 use crate::wooden_box::WoodenBox;
 
@@ -248,6 +249,46 @@ pub fn animate_explosion_core(
         
         if core.timer.just_finished() {
             commands.entity(entity).despawn();
+        }
+    }
+}
+
+pub fn shockwave_joint_damage(
+    mut commands: Commands,
+    shockwave_query: Query<&ShockwaveRing>,
+    mut joint_query: Query<(Entity, &mut JointHealth, &Transform), With<RagdollPart>>,
+) {
+    for shockwave in shockwave_query.iter() {
+        for (entity, mut joint_health, transform) in joint_query.iter_mut() {
+            let pos = transform.translation.truncate();
+            let distance = pos.distance(shockwave.origin);
+            
+            if distance < shockwave.current_radius + shockwave.wave_thickness 
+                && distance >= shockwave.current_radius - shockwave.wave_thickness {
+                
+                let distance_factor = if distance < 1.0 { 
+                    1.0 
+                } else { 
+                    (shockwave.max_radius / distance).sqrt()
+                };
+                
+                let pressure = shockwave.peak_pressure * distance_factor;
+                let joint_damage = pressure * 0.004;
+                
+                joint_health.current -= joint_damage;
+                
+                if joint_health.current <= 0.0 {
+                    spawn_blood_particles(&mut commands, pos, Vec2::ZERO);
+                    commands.entity(entity).remove::<ImpulseJoint>();
+                    commands.entity(entity).remove::<JointHealth>();
+                } else if joint_health.current < joint_health.max * 0.5 {
+                    if commands.get_entity(entity).is_some() {
+                        commands.entity(entity).insert(Fractured {
+                            severity: 1.0 - (joint_health.current / joint_health.max),
+                        });
+                    }
+                }
+            }
         }
     }
 }
