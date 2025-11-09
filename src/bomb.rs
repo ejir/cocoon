@@ -5,6 +5,7 @@ use crate::components::{Bomb, Explosion};
 use crate::constants::{BOMB_SPAWN_KEY, EXPLOSION_FORCE, EXPLOSION_RADIUS};
 use crate::drag::Draggable;
 use crate::explosion::{spawn_explosion_debris, spawn_explosion_visuals, spawn_smoke_particles};
+use crate::utils::get_cursor_world_position;
 
 pub fn spawn_bomb_on_keypress(
     mut commands: Commands,
@@ -13,13 +14,8 @@ pub fn spawn_bomb_on_keypress(
     camera_q: Query<(&Camera, &GlobalTransform)>,
 ) {
     if keyboard.just_pressed(BOMB_SPAWN_KEY) {
-        let window = windows.single();
-        let (camera, camera_transform) = camera_q.single();
-
-        if let Some(cursor_pos) = window.cursor_position() {
-            if let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_pos) {
-                spawn_bomb(&mut commands, world_pos);
-            }
+        if let Some(world_pos) = get_cursor_world_position(&windows, &camera_q) {
+            spawn_bomb(&mut commands, world_pos);
         }
     }
 }

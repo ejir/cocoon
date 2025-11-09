@@ -5,6 +5,8 @@ use rand::Rng;
 use crate::blood::spawn_blood_particles;
 use crate::components::{FireParticle, Flammable, Health, OnFire, RagdollPart};
 use crate::constants::{FIRE_DAMAGE_PER_SEC, FIRE_DURATION, FIRE_SPAWN_KEY, FIRE_SPREAD_RADIUS};
+use crate::entity_finder::find_closest_entity;
+use crate::utils::{get_cursor_world_position, set_sprite_alpha};
 
 pub fn ignite_ragdoll_on_keypress(
     mut commands: Commands,
@@ -14,29 +16,12 @@ pub fn ignite_ragdoll_on_keypress(
     flammable_query: Query<(Entity, &Transform, &Flammable), Without<OnFire>>,
 ) {
     if keyboard.just_pressed(FIRE_SPAWN_KEY) {
-        let window = windows.single();
-        let (camera, camera_transform) = camera_q.single();
-
-        if let Some(cursor_pos) = window.cursor_position() {
-            if let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_pos) {
-                let mut closest_entity = None;
-                let mut closest_distance = f32::INFINITY;
-
-                for (entity, transform, _) in flammable_query.iter() {
-                    let pos = transform.translation.truncate();
-                    let distance = pos.distance(world_pos);
-                    if distance < 100.0 && distance < closest_distance {
-                        closest_distance = distance;
-                        closest_entity = Some(entity);
-                    }
-                }
-
-                if let Some(entity) = closest_entity {
-                    commands.entity(entity).insert(OnFire {
-                        intensity: 1.0,
-                        duration: Timer::from_seconds(FIRE_DURATION, TimerMode::Once),
-                    });
-                }
+        if let Some(world_pos) = get_cursor_world_position(&windows, &camera_q) {
+            if let Some(entity) = find_closest_entity(flammable_query.iter(), world_pos, 100.0) {
+                commands.entity(entity).insert(OnFire {
+                    intensity: 1.0,
+                    duration: Timer::from_seconds(FIRE_DURATION, TimerMode::Once),
+                });
             }
         }
     }
@@ -150,14 +135,9 @@ pub fn animate_fire_particles(
         let scale = 1.0 + progress * 0.5;
         transform.scale = Vec3::splat(scale);
 
-        let Srgba {
-            red,
-            green,
-            blue,
-            alpha,
-        } = sprite.color.to_srgba();
+        let Srgba { alpha, .. } = sprite.color.to_srgba();
         let new_alpha = (1.0 - progress) * alpha;
-        sprite.color = Color::srgba(red, green, blue, new_alpha);
+        set_sprite_alpha(&mut sprite, new_alpha);
 
         if particle.lifetime.finished() {
             commands.entity(entity).despawn();

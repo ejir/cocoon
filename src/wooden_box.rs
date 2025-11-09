@@ -4,6 +4,7 @@ use bevy_rapier2d::prelude::*;
 use crate::components::{Flammable, Health};
 use crate::constants::WOODEN_BOX_SPAWN_KEY;
 use crate::drag::Draggable;
+use crate::utils::get_cursor_world_position;
 
 #[derive(Component)]
 pub struct WoodenBox;
@@ -15,13 +16,8 @@ pub fn spawn_wooden_box_on_keypress(
     camera_q: Query<(&Camera, &GlobalTransform)>,
 ) {
     if keyboard.just_pressed(WOODEN_BOX_SPAWN_KEY) {
-        let window = windows.single();
-        let (camera, camera_transform) = camera_q.single();
-
-        if let Some(cursor_pos) = window.cursor_position() {
-            if let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_pos) {
-                spawn_wooden_box(&mut commands, world_pos);
-            }
+        if let Some(world_pos) = get_cursor_world_position(&windows, &camera_q) {
+            spawn_wooden_box(&mut commands, world_pos);
         }
     }
 }

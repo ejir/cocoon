@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 use crate::components::{ExplosionFlash, ExplosionShockwave, SmokeParticle};
+use crate::utils::set_sprite_alpha;
 
 pub fn animate_explosion_flash(
     mut commands: Commands,
@@ -15,8 +16,7 @@ pub fn animate_explosion_flash(
         transform.scale = Vec3::splat(scale);
         
         let alpha = 1.0 - progress;
-        let Srgba { red, green, blue, .. } = sprite.color.to_srgba();
-        sprite.color = Color::srgba(red, green, blue, alpha);
+        set_sprite_alpha(&mut sprite, alpha);
         
         if flash.timer.just_finished() {
             commands.entity(entity).despawn();
@@ -71,8 +71,7 @@ pub fn animate_smoke_particles(
         transform.scale = Vec3::splat(scale);
         
         let alpha = (1.0 - progress) * 0.6;
-        let Srgba { red, green, blue, .. } = sprite.color.to_srgba();
-        sprite.color = Color::srgba(red, green, blue, alpha);
+        set_sprite_alpha(&mut sprite, alpha);
         
         if smoke.lifetime.just_finished() {
             commands.entity(entity).despawn();

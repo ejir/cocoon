@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use rand::Rng;
 
 use crate::components::BloodParticle;
+use crate::utils::set_sprite_alpha;
 
 pub fn spawn_blood_particles(commands: &mut Commands, position: Vec2, impulse_direction: Vec2) {
     let mut rng = rand::thread_rng();
@@ -71,9 +72,8 @@ pub fn animate_blood_particles(
             particle.velocity.y -= 400.0 * time.delta_secs();
 
             let progress = particle.lifetime.elapsed_secs() / particle.lifetime.duration().as_secs_f32();
-            let Srgba { red, green, blue, alpha: _ } = sprite.color.to_srgba();
             let new_alpha = 1.0 - progress;
-            sprite.color = Color::srgba(red, green, blue, new_alpha);
+            set_sprite_alpha(&mut sprite, new_alpha);
         }
     }
 }
