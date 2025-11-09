@@ -17,6 +17,10 @@ pub fn spawn_ragdoll_on_keypress(
     }
 }
 
+pub fn spawn_ragdoll_from_ui(commands: &mut Commands, position: Vec2) {
+    spawn_ragdoll(commands, position);
+}
+
 fn spawn_ragdoll(commands: &mut Commands, position: Vec2) {
     let skin_color = Color::srgb(0.9, 0.7, 0.6);
     let shirt_color = Color::srgb(0.4, 0.6, 0.8);

@@ -16,13 +16,29 @@ pub fn ignite_ragdoll_on_keypress(
 ) {
     if keyboard.just_pressed(FIRE_SPAWN_KEY) {
         if let Some(world_pos) = get_cursor_world_position(&windows, &camera_q) {
-            if let Some(entity) = find_closest_entity(flammable_query.iter(), world_pos, 100.0) {
-                commands.entity(entity).insert(OnFire {
-                    intensity: 1.0,
-                    duration: Timer::from_seconds(FIRE_DURATION, TimerMode::Once),
-                });
-            }
+            ignite_at_position(&mut commands, world_pos, &flammable_query);
         }
+    }
+}
+
+pub fn spawn_fire_from_ui(
+    commands: &mut Commands,
+    position: Vec2,
+    flammable_query: &Query<(Entity, &Transform, &Flammable), Without<OnFire>>,
+) {
+    ignite_at_position(commands, position, flammable_query);
+}
+
+fn ignite_at_position(
+    commands: &mut Commands,
+    world_pos: Vec2,
+    flammable_query: &Query<(Entity, &Transform, &Flammable), Without<OnFire>>,
+) {
+    if let Some(entity) = find_closest_entity(flammable_query.iter(), world_pos, 100.0) {
+        commands.entity(entity).insert(OnFire {
+            intensity: 1.0,
+            duration: Timer::from_seconds(FIRE_DURATION, TimerMode::Once),
+        });
     }
 }
 
