@@ -12,6 +12,7 @@ mod damage;
 mod drag;
 mod entity_finder;
 mod explosion;
+mod iron_block;
 mod particles;
 mod physics;
 mod physics_utils;
@@ -30,6 +31,7 @@ use combustion::{
 };
 use damage::{apply_explosive_joint_damage, check_joint_damage, collision_joint_damage, detect_impact_damage, track_velocity, visualize_fractures};
 use drag::{end_drag_system, start_drag_system, update_drag_system, DragState};
+use iron_block::spawn_iron_block_on_keypress;
 use physics::{apply_explosion, cleanup_debris};
 use ragdoll::spawn_ragdoll_on_keypress;
 use setup::setup;
@@ -58,6 +60,7 @@ fn main() {
                 spawn_ragdoll_on_keypress,
                 spawn_bomb_on_keypress,
                 spawn_wooden_box_on_keypress,
+                spawn_iron_block_on_keypress,
                 bomb_timer_system,
                 apply_explosion,
                 update_shockwave,
