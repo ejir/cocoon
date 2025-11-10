@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use crate::bomb::spawn_bomb_from_ui;
 use crate::combustion::spawn_fire_from_ui;
 use crate::drag::DragState;
+use crate::iron_block::spawn_iron_block_from_ui;
 use crate::ragdoll::spawn_ragdoll_from_ui;
 use crate::utils::get_cursor_world_position;
 use crate::wooden_box::spawn_wooden_box_from_ui;
@@ -12,6 +13,7 @@ pub enum ObjectType {
     Ragdoll,
     Bomb,
     WoodenBox,
+    IronBlock,
     Fire,
 }
 
@@ -55,6 +57,7 @@ pub fn setup_ui_topbar(mut commands: Commands) {
             create_object_button(parent, ObjectType::Ragdoll, "Ragdoll (R)", true);
             create_object_button(parent, ObjectType::Bomb, "Bomb (B)", false);
             create_object_button(parent, ObjectType::WoodenBox, "Box (W)", false);
+            create_object_button(parent, ObjectType::IronBlock, "Iron (I)", false);
             create_object_button(parent, ObjectType::Fire, "Fire (F)", false);
         });
 }
@@ -147,6 +150,7 @@ pub fn spawn_selected_object_on_click(
                 ObjectType::Ragdoll => spawn_ragdoll_from_ui(&mut commands, world_pos),
                 ObjectType::Bomb => spawn_bomb_from_ui(&mut commands, world_pos),
                 ObjectType::WoodenBox => spawn_wooden_box_from_ui(&mut commands, world_pos),
+                ObjectType::IronBlock => spawn_iron_block_from_ui(&mut commands, world_pos),
                 ObjectType::Fire => spawn_fire_from_ui(&mut commands, world_pos, &flammable_query),
             }
         }
