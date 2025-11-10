@@ -98,29 +98,36 @@ fn create_object_button(
 
 pub fn handle_button_clicks(
     mut selected_object: ResMut<SelectedObject>,
-    mut interaction_query: Query<
-        (&Interaction, &ObjectButton, &mut BackgroundColor),
-        Changed<Interaction>,
-    >,
-    mut all_buttons: Query<(&ObjectButton, &mut BackgroundColor)>,
+    mut queries: ParamSet<(
+        Query<
+            (&Interaction, &ObjectButton, &mut BackgroundColor),
+            Changed<Interaction>,
+        >,
+        Query<(&ObjectButton, &mut BackgroundColor)>,
+    )>,
 ) {
-    for (interaction, button, mut bg_color) in interaction_query.iter_mut() {
-        if *interaction == Interaction::Pressed {
-            selected_object.object_type = button.object_type;
+    let mut pressed_button: Option<ObjectType> = None;
 
-            for (other_button, mut other_bg_color) in all_buttons.iter_mut() {
-                if other_button.object_type == button.object_type {
-                    *other_bg_color = BackgroundColor(Color::srgb(0.3, 0.5, 0.7));
-                } else {
-                    *other_bg_color = BackgroundColor(Color::srgb(0.25, 0.25, 0.25));
-                }
-            }
+    for (interaction, button, mut bg_color) in queries.p0().iter_mut() {
+        if *interaction == Interaction::Pressed {
+            pressed_button = Some(button.object_type);
+            selected_object.object_type = button.object_type;
         } else if *interaction == Interaction::Hovered {
             if selected_object.object_type != button.object_type {
                 *bg_color = BackgroundColor(Color::srgb(0.35, 0.35, 0.35));
             }
         } else if selected_object.object_type != button.object_type {
             *bg_color = BackgroundColor(Color::srgb(0.25, 0.25, 0.25));
+        }
+    }
+
+    if let Some(pressed_type) = pressed_button {
+        for (button, mut bg_color) in queries.p1().iter_mut() {
+            if button.object_type == pressed_type {
+                *bg_color = BackgroundColor(Color::srgb(0.3, 0.5, 0.7));
+            } else {
+                *bg_color = BackgroundColor(Color::srgb(0.25, 0.25, 0.25));
+            }
         }
     }
 }
