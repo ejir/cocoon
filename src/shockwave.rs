@@ -108,7 +108,18 @@ pub fn update_shockwave(
                     1.0
                 };
                 
-                let cross_section = transform.scale.x.max(transform.scale.y).max(20.0);
+                // Calculate cross-section based on actual sprite size for realistic force application
+                let cross_section = if let Some(sprite) = sprite_opt {
+                    if let Some(size) = sprite.custom_size {
+                        // Use actual sprite dimensions to calculate cross-sectional area
+                        // Larger objects should experience more force from pressure waves
+                        size.x.max(size.y)
+                    } else {
+                        transform.scale.x.max(transform.scale.y).max(20.0)
+                    }
+                } else {
+                    transform.scale.x.max(transform.scale.y).max(20.0)
+                };
                 
                 let impulse_magnitude = pressure * cross_section * time.delta_secs();
                 let impulse_vec = direction * impulse_magnitude;
