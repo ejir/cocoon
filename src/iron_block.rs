@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::components::Health;
 use crate::constants::IRON_BLOCK_SPAWN_KEY;
 use crate::drag::Draggable;
 use crate::utils::get_cursor_world_position;
@@ -46,9 +45,5 @@ fn spawn_iron_block(commands: &mut Commands, position: Vec2) {
         Velocity::default(),
         IronBlock,
         Draggable,
-        Health {
-            current: 300.0,
-            max: 300.0,
-        },
     ));
 }

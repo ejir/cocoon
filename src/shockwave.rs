@@ -67,6 +67,10 @@ pub fn update_shockwave(
                     Vec2::new(1.0, 0.0)
                 };
                 
+                // Efficient raycast-based occlusion: Cast a ray from shockwave origin to target.
+                // If a solid object (IronBlock/WoodenBox) is in the line of sight, the target
+                // is shielded from the shockwave. This is more efficient than area-based checks
+                // and provides realistic physics-based occlusion behavior.
                 let is_blocked = if distance > 1.0 {
                     let ray_dir = direction;
                     let max_toi = distance - 1.0;
@@ -117,7 +121,12 @@ pub fn update_shockwave(
                 impulse.torque_impulse += torque;
                 
                 if let Some(mut health) = health_opt {
-                    if ragdoll_opt.is_some() || wooden_box_opt.is_some() || iron_block_opt.is_some() {
+                    // Iron blocks are indestructible - skip damage application
+                    if iron_block_opt.is_some() {
+                        continue;
+                    }
+                    
+                    if ragdoll_opt.is_some() || wooden_box_opt.is_some() {
                         let base_damage = pressure * 0.0008;
                         
                         let velocity_factor = (impulse_magnitude / mass).min(1000.0) / 1000.0;
