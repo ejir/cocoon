@@ -12,6 +12,7 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
   - When joint health reaches zero, limbs detach from the body with blood effects
 - **Realistic Shockwave Explosions**: Timed explosives with propagating shockwaves, pressure-based damage, and physics
 - **Wooden Boxes**: Destructible wooden boxes that can be damaged and destroyed by explosions and fire
+- **Iron Blocks**: Indestructible metal blocks that are affected by explosion forces but cannot be damaged or destroyed
 - **Combustion System**: Set ragdolls and wooden boxes on fire with spreading flames and continuous damage
 - **Destructible Objects**: Ragdoll parts and wooden boxes can be destroyed by explosions and fire
 - **Blood Effects**: Realistic blood particle system with physics and fade-out animations
@@ -27,6 +28,7 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
   - **Ragdoll (R)**: Select ragdoll for spawning
   - **Bomb (B)**: Select bomb for spawning
   - **Box (W)**: Select wooden box for spawning
+  - **Iron (I)**: Select iron block for spawning
   - **Fire (F)**: Select fire tool for spawning
 - **Left Mouse Click**: Spawn the selected object at cursor position (when not dragging)
 
@@ -34,10 +36,11 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
 - **R**: Spawn a ragdoll at cursor position
 - **B**: Spawn a bomb at cursor position (explodes after 2 seconds)
 - **W**: Spawn a wooden box at cursor position
+- **I**: Spawn an iron block at cursor position
 - **F**: Ignite nearest flammable object near cursor (sets it on fire)
 
 ### Mouse Controls
-- **Left Mouse Drag**: Click and drag to move ragdoll parts, bombs, and wooden boxes
+- **Left Mouse Drag**: Click and drag to move ragdoll parts, bombs, wooden boxes, and iron blocks
 
 ## Technical Details
 
@@ -105,6 +108,16 @@ Wooden boxes are destructible physics objects:
 6. Can be dragged and moved like other objects
 7. When destroyed by fire or explosions, the box is removed from the scene
 
+### Iron Block System
+
+Iron blocks are indestructible physics objects:
+1. Cannot be damaged or destroyed by any means (explosions, fire, collisions)
+2. **Affected by impact forces**: Explosion shockwaves and collisions apply realistic physics forces
+3. Heavy objects with steel-like density (7.8), so they move less than lighter objects
+4. Can block explosion shockwaves, protecting objects behind them
+5. Can be dragged and moved like other objects
+6. Ideal for creating barriers, shields, and heavy projectiles
+
 ### Combustion System
 
 The fire system provides realistic burning mechanics:
@@ -119,7 +132,7 @@ The fire system provides realistic burning mechanics:
 ### Drag System
 
 Interactive mouse-based object manipulation:
-1. Click and hold left mouse button on any ragdoll part, bomb, or wooden box to start dragging
+1. Click and hold left mouse button on any ragdoll part, bomb, wooden box, or iron block to start dragging
 2. Object temporarily becomes kinematic (unaffected by physics) while dragging
 3. Follows cursor position with offset from original click point
 4. Release mouse button to drop object and restore dynamic physics behavior
@@ -156,7 +169,7 @@ The game uses optimized compilation settings for fast development builds:
 
 ## Future Enhancements
 
-- Additional object types (platforms, ropes, metal boxes)
+- Additional object types (platforms, ropes)
 - More explosion effects and particle systems
 - Interactive tools (grab, pin, delete)
 - Different bomb types with varying power
