@@ -18,6 +18,7 @@ mod physics_utils;
 mod ragdoll;
 mod setup;
 mod shockwave;
+mod ui_topbar;
 mod utils;
 mod wooden_box;
 
@@ -33,6 +34,7 @@ use physics::{apply_explosion, cleanup_debris};
 use ragdoll::spawn_ragdoll_on_keypress;
 use setup::setup;
 use shockwave::{animate_explosion_core, animate_shockwave_visual, shockwave_joint_damage, update_shockwave};
+use ui_topbar::{handle_button_clicks, setup_ui_topbar, spawn_selected_object_on_click, SelectedObject};
 use wooden_box::spawn_wooden_box_on_keypress;
 
 fn main() {
@@ -48,7 +50,8 @@ fn main() {
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
         .add_plugins(RapierDebugRenderPlugin::default())
         .init_resource::<DragState>()
-        .add_systems(Startup, setup)
+        .init_resource::<SelectedObject>()
+        .add_systems(Startup, (setup, setup_ui_topbar))
         .add_systems(
             Update,
             (
@@ -91,6 +94,10 @@ fn main() {
         .add_systems(
             Update,
             (start_drag_system, update_drag_system, end_drag_system).chain(),
+        )
+        .add_systems(
+            Update,
+            (handle_button_clicks, spawn_selected_object_on_click),
         )
         .run();
 }

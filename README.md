@@ -4,6 +4,7 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
 
 ## Features
 
+- **Intuitive UI Top Bar**: Interactive object selection interface with visual feedback for easy spawning
 - **Physics-Driven Ragdolls**: Fully articulated humanoid ragdolls with realistic joint constraints
 - **Fracture & Dismemberment System**: Body parts can fracture and limbs can be torn off by explosions, impacts, and external forces
   - Joints have health and can be damaged by explosions, collisions, and excessive stress
@@ -21,11 +22,22 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
 
 ## Controls
 
+### Object Selection UI
+- **Top Bar**: Click buttons to select which object to spawn
+  - **Ragdoll (R)**: Select ragdoll for spawning
+  - **Bomb (B)**: Select bomb for spawning
+  - **Box (W)**: Select wooden box for spawning
+  - **Fire (F)**: Select fire tool for spawning
+- **Left Mouse Click**: Spawn the selected object at cursor position (when not dragging)
+
+### Keyboard Shortcuts (Alternative)
 - **R**: Spawn a ragdoll at cursor position
 - **B**: Spawn a bomb at cursor position (explodes after 2 seconds)
 - **W**: Spawn a wooden box at cursor position
 - **F**: Ignite nearest flammable object near cursor (sets it on fire)
-- **Left Mouse Button**: Click and drag to move ragdoll parts, bombs, and wooden boxes
+
+### Mouse Controls
+- **Left Mouse Drag**: Click and drag to move ragdoll parts, bombs, and wooden boxes
 
 ## Technical Details
 

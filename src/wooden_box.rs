@@ -22,6 +22,10 @@ pub fn spawn_wooden_box_on_keypress(
     }
 }
 
+pub fn spawn_wooden_box_from_ui(commands: &mut Commands, position: Vec2) {
+    spawn_wooden_box(commands, position);
+}
+
 fn spawn_wooden_box(commands: &mut Commands, position: Vec2) {
     let width = 60.0;
     let height = 60.0;

@@ -1,0 +1,82 @@
+   Compiling bevy_sandbox_ragdoll v0.1.0 (/home/engine/project)
+warning: field `max` is never read
+  --> src/components.rs:32:9
+   |
+30 | pub struct Health {
+   |            ------ field in this struct
+31 |     pub current: f32,
+32 |     pub max: f32,
+   |         ^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `ignition_threshold` is never read
+  --> src/components.rs:71:9
+   |
+70 | pub struct Flammable {
+   |            --------- field in this struct
+71 |     pub ignition_threshold: f32,
+   |         ^^^^^^^^^^^^^^^^^^
+
+warning: struct `Particle` is never constructed
+ --> src/particles.rs:7:12
+  |
+7 | pub struct Particle {
+  |            ^^^^^^^^
+
+warning: enum `FadeMode` is never used
+  --> src/particles.rs:16:10
+   |
+16 | pub enum FadeMode {
+   |          ^^^^^^^^
+
+warning: enum `ScaleMode` is never used
+  --> src/particles.rs:21:10
+   |
+21 | pub enum ScaleMode {
+   |          ^^^^^^^^^
+
+warning: function `animate_particles` is never used
+  --> src/particles.rs:27:8
+   |
+27 | pub fn animate_particles(
+   |        ^^^^^^^^^^^^^^^^^
+
+warning: struct `ParticleSpawnConfig` is never constructed
+  --> src/particles.rs:72:12
+   |
+72 | pub struct ParticleSpawnConfig {
+   |            ^^^^^^^^^^^^^^^^^^^
+
+warning: function `spawn_particles` is never used
+   --> src/particles.rs:109:8
+    |
+109 | pub fn spawn_particles(commands: &mut Commands, config: ParticleSpawnConfig) {
+    |        ^^^^^^^^^^^^^^^
+
+warning: struct `RigidBodyConfig` is never constructed
+ --> src/physics_utils.rs:4:12
+  |
+4 | pub struct RigidBodyConfig {
+  |            ^^^^^^^^^^^^^^^
+
+warning: enum `ColliderType` is never used
+  --> src/physics_utils.rs:15:10
+   |
+15 | pub enum ColliderType {
+   |          ^^^^^^^^^^^^
+
+warning: function `spawn_physics_sprite` is never used
+  --> src/physics_utils.rs:35:8
+   |
+35 | pub fn spawn_physics_sprite(commands: &mut Commands, config: RigidBodyConfig) -> Entity {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `modify_sprite_brightness` is never used
+  --> src/utils.rs:37:8
+   |
+37 | pub fn modify_sprite_brightness(sprite: &mut Sprite, brightness: f32) {
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `bevy_sandbox_ragdoll` (bin "bevy_sandbox_ragdoll") generated 12 warnings
+    Finished `dev` profile [optimized + debuginfo] target(s) in 21.72s

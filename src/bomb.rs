@@ -21,6 +21,10 @@ pub fn spawn_bomb_on_keypress(
     }
 }
 
+pub fn spawn_bomb_from_ui(commands: &mut Commands, position: Vec2) {
+    spawn_bomb(commands, position);
+}
+
 fn spawn_bomb(commands: &mut Commands, position: Vec2) {
     let radius = 15.0;
 
