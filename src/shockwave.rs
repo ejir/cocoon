@@ -5,6 +5,7 @@ use crate::blood::spawn_blood_particles;
 use crate::components::{Health, RagdollPart, ShockwaveRing};
 use crate::damage::{Fractured, JointHealth};
 use crate::explosion::spawn_object_fragments;
+use crate::iron_block::IronBlock;
 use crate::wooden_box::WoodenBox;
 
 pub fn spawn_shockwave(commands: &mut Commands, position: Vec2, max_radius: f32, peak_pressure: f32) {
@@ -22,6 +23,7 @@ pub fn spawn_shockwave(commands: &mut Commands, position: Vec2, max_radius: f32,
 pub fn update_shockwave(
     mut commands: Commands,
     time: Res<Time>,
+    rapier_context: Res<RapierContext>,
     mut shockwave_query: Query<(Entity, &mut ShockwaveRing)>,
     mut physics_query: Query<(
         Entity,
@@ -30,10 +32,12 @@ pub fn update_shockwave(
         Option<&mut Health>,
         Option<&RagdollPart>,
         Option<&WoodenBox>,
+        Option<&IronBlock>,
         Option<&ReadMassProperties>,
         Option<&Sprite>,
         Option<&Velocity>,
     ), With<RigidBody>>,
+    blocking_query: Query<(), Or<(With<IronBlock>, With<WoodenBox>)>>,
 ) {
     for (shockwave_entity, mut shockwave) in shockwave_query.iter_mut() {
         shockwave.lifetime.tick(time.delta());
@@ -48,7 +52,7 @@ pub fn update_shockwave(
             continue;
         }
         
-        for (entity, transform, mut impulse, health_opt, ragdoll_opt, wooden_box_opt, mass_props_opt, sprite_opt, velocity_opt) in physics_query.iter_mut() {
+        for (entity, transform, mut impulse, health_opt, ragdoll_opt, wooden_box_opt, iron_block_opt, mass_props_opt, sprite_opt, velocity_opt) in physics_query.iter_mut() {
             let pos = transform.translation.truncate();
             let distance = pos.distance(shockwave.origin);
             
@@ -58,6 +62,29 @@ pub fn update_shockwave(
                 } else {
                     Vec2::new(1.0, 0.0)
                 };
+                
+                let is_blocked = if distance > 1.0 {
+                    let ray_dir = direction;
+                    let max_toi = distance - 1.0;
+                    
+                    if let Some((blocking_entity, _toi)) = rapier_context.cast_ray(
+                        shockwave.origin,
+                        ray_dir,
+                        max_toi,
+                        true,
+                        QueryFilter::default().exclude_collider(entity),
+                    ) {
+                        blocking_query.get(blocking_entity).is_ok()
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                };
+                
+                if is_blocked {
+                    continue;
+                }
                 
                 let distance_factor = if distance < 1.0 { 
                     1.0 
@@ -86,7 +113,7 @@ pub fn update_shockwave(
                 impulse.torque_impulse += torque;
                 
                 if let Some(mut health) = health_opt {
-                    if ragdoll_opt.is_some() || wooden_box_opt.is_some() {
+                    if ragdoll_opt.is_some() || wooden_box_opt.is_some() || iron_block_opt.is_some() {
                         let base_damage = pressure * 0.0008;
                         
                         let velocity_factor = (impulse_magnitude / mass).min(1000.0) / 1000.0;
@@ -109,7 +136,7 @@ pub fn update_shockwave(
                                     size,
                                     color,
                                     current_velocity,
-                                    wooden_box_opt.is_some(),
+                                    wooden_box_opt.is_some() || iron_block_opt.is_some(),
                                 );
                             }
                             
