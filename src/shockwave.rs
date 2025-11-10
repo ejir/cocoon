@@ -23,7 +23,7 @@ pub fn spawn_shockwave(commands: &mut Commands, position: Vec2, max_radius: f32,
 pub fn update_shockwave(
     mut commands: Commands,
     time: Res<Time>,
-    rapier_context: Res<RapierContext>,
+    rapier_context: Query<&RapierContext>,
     mut shockwave_query: Query<(Entity, &mut ShockwaveRing)>,
     mut physics_query: Query<(
         Entity,
@@ -39,6 +39,10 @@ pub fn update_shockwave(
     ), With<RigidBody>>,
     blocking_query: Query<(), Or<(With<IronBlock>, With<WoodenBox>)>>,
 ) {
+    let Ok(context) = rapier_context.get_single() else {
+        return;
+    };
+    
     for (shockwave_entity, mut shockwave) in shockwave_query.iter_mut() {
         shockwave.lifetime.tick(time.delta());
         
@@ -67,7 +71,7 @@ pub fn update_shockwave(
                     let ray_dir = direction;
                     let max_toi = distance - 1.0;
                     
-                    if let Some((blocking_entity, _toi)) = rapier_context.cast_ray(
+                    if let Some((blocking_entity, _toi)) = context.cast_ray(
                         shockwave.origin,
                         ray_dir,
                         max_toi,

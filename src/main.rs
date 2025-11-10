@@ -65,6 +65,11 @@ fn main() {
                 apply_explosion,
                 update_shockwave,
                 shockwave_joint_damage,
+            ),
+        )
+        .add_systems(
+            Update,
+            (
                 cleanup_debris,
                 animate_explosion_flash,
                 animate_explosion_shockwave,
