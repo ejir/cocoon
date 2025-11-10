@@ -113,6 +113,7 @@ pub fn update_shockwave(
                 let impulse_magnitude = pressure * cross_section * time.delta_secs();
                 let impulse_vec = direction * impulse_magnitude;
                 
+                // Apply impulse forces to ALL objects (including iron blocks)
                 impulse.impulse += impulse_vec;
                 
                 let torque_factor = (distance / shockwave.max_radius).clamp(0.0, 1.0);
@@ -120,12 +121,9 @@ pub fn update_shockwave(
                 let torque = random_torque * impulse_magnitude * 0.1 * (1.0 - torque_factor);
                 impulse.torque_impulse += torque;
                 
+                // Apply damage only to destructible objects (ragdolls, wooden boxes)
+                // Iron blocks don't have Health component, so they won't be damaged
                 if let Some(mut health) = health_opt {
-                    // Iron blocks are indestructible - skip damage application
-                    if iron_block_opt.is_some() {
-                        continue;
-                    }
-                    
                     if ragdoll_opt.is_some() || wooden_box_opt.is_some() {
                         let base_damage = pressure * 0.0008;
                         
