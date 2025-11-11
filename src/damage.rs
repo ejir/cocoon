@@ -35,16 +35,26 @@ pub fn check_joint_damage(
             let velocity_diff = (child_vel.linvel - parent_vel.linvel).length();
             let angular_diff = (child_vel.angvel - parent_vel.angvel).abs();
             
-            let stress = velocity_diff * 0.01 + angular_diff * 0.1;
+            // More sensitive stress calculation
+            let stress = velocity_diff * 0.015 + angular_diff * 0.15;
             
-            if stress > 5.0 {
-                let damage = (stress - 5.0) * 0.5;
+            // Lower threshold for joint stress damage
+            if stress > 3.0 {
+                let mut damage = (stress - 3.0) * 0.7;
+                
+                // Extra damage for extreme stress (violent movements)
+                if stress > 15.0 {
+                    let extreme_stress_multiplier = (stress / 15.0).min(2.0);
+                    damage *= extreme_stress_multiplier;
+                }
+                
                 joint_health.current -= damage;
                 
                 if joint_health.current <= 0.0 {
                     let position = transform.translation.truncate();
-                    
-                    spawn_blood_particles(&mut commands, position, Vec2::ZERO);
+                    // Use velocity difference for blood spray direction
+                    let blood_vel = (child_vel.linvel - parent_vel.linvel) * 0.3;
+                    spawn_blood_particles(&mut commands, position, blood_vel);
                     
                     commands.entity(entity).remove::<ImpulseJoint>();
                     commands.entity(entity).remove::<JointHealth>();
@@ -134,15 +144,40 @@ pub fn detect_impact_damage(
             let velocity_change = (velocity.linvel - prev.linvel).length();
             let angular_change = (velocity.angvel - prev.angvel).abs();
             
-            if velocity_change > 300.0 || angular_change > 10.0 {
+            // Detect vertical impact (falling) for enhanced damage
+            let vertical_impact = (prev.linvel.y - velocity.linvel.y).abs();
+            let is_falling_impact = prev.linvel.y < -200.0 && velocity_change > 200.0;
+            
+            // Lower threshold for impact detection, more sensitive to impacts
+            if velocity_change > 200.0 || angular_change > 8.0 || is_falling_impact {
                 for (joint_entity, mut joint_health, joint_transform) in joint_query.iter_mut() {
                     if joint_entity == entity {
-                        let impact_damage = velocity_change * 0.03 + angular_change * 0.5;
+                        // Base impact damage calculation
+                        let mut impact_damage = velocity_change * 0.05 + angular_change * 0.8;
+                        
+                        // Apply enhanced damage for high-velocity impacts (falling from height)
+                        if velocity_change > 500.0 {
+                            let high_impact_multiplier = (velocity_change / 500.0).min(3.0);
+                            impact_damage *= high_impact_multiplier;
+                        }
+                        
+                        // Extra damage for vertical falls to simulate ground impact
+                        if is_falling_impact {
+                            let fall_damage_bonus = vertical_impact * 0.08;
+                            impact_damage += fall_damage_bonus;
+                        }
+                        
                         joint_health.current -= impact_damage;
                         
                         if joint_health.current <= 0.0 {
                             let position = joint_transform.translation.truncate();
-                            spawn_blood_particles(&mut commands, position, velocity.linvel * 0.3);
+                            // More dramatic blood spray for high impacts
+                            let blood_velocity = if velocity_change > 500.0 {
+                                velocity.linvel * 0.5
+                            } else {
+                                velocity.linvel * 0.3
+                            };
+                            spawn_blood_particles(&mut commands, position, blood_velocity);
                             
                             commands.entity(joint_entity).remove::<ImpulseJoint>();
                             commands.entity(joint_entity).remove::<JointHealth>();
@@ -164,6 +199,7 @@ pub fn collision_joint_damage(
     mut commands: Commands,
     mut collision_events: EventReader<CollisionEvent>,
     mut joint_query: Query<(Entity, &mut JointHealth, &Transform, Option<&Velocity>), With<RagdollPart>>,
+    mass_query: Query<Option<&ReadMassProperties>>,
 ) {
     for collision_event in collision_events.read() {
         if let CollisionEvent::Started(entity1, entity2, _flags) = collision_event {
@@ -171,14 +207,42 @@ pub fn collision_joint_damage(
                 if let Ok((joint_entity, mut joint_health, transform, velocity_opt)) = joint_query.get_mut(*entity) {
                     let velocity = velocity_opt.map(|v| v.linvel.length()).unwrap_or(0.0);
                     
-                    if velocity > 200.0 {
-                        let collision_damage = (velocity - 200.0) * 0.05;
+                    // Lower threshold and more aggressive damage for collisions
+                    if velocity > 150.0 {
+                        // Base collision damage with improved scaling
+                        let mut collision_damage = (velocity - 150.0) * 0.08;
+                        
+                        // Check if colliding with a heavy object (iron block, etc)
+                        let other_entity = if entity == entity1 { entity2 } else { entity1 };
+                        if let Ok(other_mass_opt) = mass_query.get(*other_entity) {
+                            if let Some(other_mass_props) = other_mass_opt {
+                                // Extra damage if hit by heavy object
+                                let mass = other_mass_props.mass;
+                                if mass > 5.0 {
+                                    let mass_multiplier = (mass / 5.0).min(2.5);
+                                    collision_damage *= mass_multiplier;
+                                }
+                            }
+                        }
+                        
+                        // Extra damage for very high velocity collisions
+                        if velocity > 400.0 {
+                            let high_velocity_bonus = (velocity - 400.0) * 0.06;
+                            collision_damage += high_velocity_bonus;
+                        }
+                        
                         joint_health.current -= collision_damage;
                         
                         if joint_health.current <= 0.0 {
                             let position = transform.translation.truncate();
                             let vel_dir = velocity_opt.map(|v| v.linvel).unwrap_or(Vec2::ZERO);
-                            spawn_blood_particles(&mut commands, position, vel_dir * 0.2);
+                            // More blood for higher velocity collisions
+                            let blood_velocity = if velocity > 400.0 {
+                                vel_dir * 0.4
+                            } else {
+                                vel_dir * 0.2
+                            };
+                            spawn_blood_particles(&mut commands, position, blood_velocity);
                             
                             commands.entity(joint_entity).remove::<ImpulseJoint>();
                             commands.entity(joint_entity).remove::<JointHealth>();

@@ -82,9 +82,11 @@ Each body part has its own health system:
 
 Joints connecting body parts have health and can be damaged by various forces:
 1. **Shockwave Damage**: Explosion shockwaves apply pressure-based damage to joints
-2. **Collision Damage**: High-velocity impacts (>200 units/sec) damage joints
+2. **Collision Damage**: High-velocity impacts (>150 units/sec) damage joints, with extra damage from heavy objects
 3. **Stress Damage**: Large velocity differences between connected parts cause joint stress
-4. **Impact Detection**: Sudden velocity changes (>300 units/sec) indicate impacts
+4. **Impact Detection**: Sudden velocity changes (>200 units/sec) indicate impacts
+5. **Fall Damage**: Falling from heights causes enhanced impact damage when hitting surfaces
+6. **High-Impact Multipliers**: Extreme velocities (>500 units/sec) apply up to 3x damage multiplier
 
 Joint damage mechanics:
 - Each joint starts with 100 health points
@@ -92,8 +94,13 @@ Joint damage mechanics:
 - When joint health reaches 0, the joint breaks completely:
   - The ImpulseJoint constraint is removed
   - The limb detaches from the body
-  - Blood particles spawn at the separation point
+  - Blood particles spawn at the separation point with velocity-based spray
   - The detached limb continues as an independent physics object
+- Body parts are more likely to detach from:
+  - Falling from significant heights
+  - Being hit by heavy objects (iron blocks, etc.)
+  - Explosion impacts
+  - High-velocity collisions
 
 ### Bomb System
 
