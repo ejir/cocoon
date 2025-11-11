@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
+use crate::connection::Connectable;
 use crate::constants::IRON_BLOCK_SPAWN_KEY;
 use crate::drag::Draggable;
 use crate::utils::get_cursor_world_position;
@@ -45,5 +46,6 @@ fn spawn_iron_block(commands: &mut Commands, position: Vec2) {
         Velocity::default(),
         IronBlock,
         Draggable,
+        Connectable,
     ));
 }

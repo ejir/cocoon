@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
 use crate::components::{Flammable, Health};
+use crate::connection::Connectable;
 use crate::constants::WOODEN_BOX_SPAWN_KEY;
 use crate::drag::Draggable;
 use crate::utils::get_cursor_world_position;
@@ -46,6 +47,7 @@ fn spawn_wooden_box(commands: &mut Commands, position: Vec2) {
         Velocity::default(),
         WoodenBox,
         Draggable,
+        Connectable,
         Health {
             current: 100.0,
             max: 100.0,
