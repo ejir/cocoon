@@ -33,7 +33,8 @@ use combustion::{
 };
 use connection::{
     create_constraint_system, handle_deleted_selections, handle_object_selection,
-    update_selection_indicators, SelectionState,
+    update_selection_indicators, SelectionState, DragConnectionState,
+    start_drag_connection, update_drag_connection, end_drag_connection,
 };
 use damage::{apply_explosive_joint_damage, check_joint_damage, collision_joint_damage, detect_impact_damage, track_velocity, visualize_fractures};
 use drag::{end_drag_system, start_drag_system, update_drag_system, DragState};
@@ -62,6 +63,7 @@ fn main() {
         .init_resource::<CreateDragState>()
         .init_resource::<SelectedObject>()
         .init_resource::<SelectionState>()
+        .init_resource::<DragConnectionState>()
         .add_systems(Startup, (setup, setup_ui_topbar))
         .add_systems(
             Update,
@@ -126,11 +128,16 @@ fn main() {
         .add_systems(
             Update,
             (
+                // Mode 1: Click-based connection (existing)
                 handle_object_selection,
                 update_selection_indicators,
                 create_constraint_system,
                 handle_deleted_selections,
-            ),
+                // Mode 2: Drag-based connection (new)
+                start_drag_connection,
+                update_drag_connection,
+                end_drag_connection,
+            ).chain(),
         )
         .run();
 }

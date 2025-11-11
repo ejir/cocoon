@@ -9,6 +9,12 @@ pub enum ConstraintType {
     Hinge,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ConnectionMode {
+    Click,  // Mode 1: Click first, click second, press C to connect
+    Drag,   // Mode 2: Drag from first to second to connect
+}
+
 #[derive(Resource)]
 pub struct SelectionState {
     pub first_selected: Option<Entity>,
@@ -27,6 +33,18 @@ impl Default for SelectionState {
         }
     }
 }
+
+/// Resource to track drag-based connection state (Mode 2)
+#[derive(Resource, Default)]
+pub struct DragConnectionState {
+    pub is_dragging: bool,
+    pub start_entity: Option<Entity>,
+    pub start_position: Vec2,
+}
+
+/// Component for the visual line showing the connection being dragged
+#[derive(Component)]
+pub struct ConnectionDragLine;
 
 #[derive(Component)]
 pub struct SelectionIndicator {
@@ -49,13 +67,14 @@ pub fn handle_object_selection(
     connectable_query: Query<(Entity, &Transform), With<Connectable>>,
     indicator_query: Query<Entity, With<SelectionIndicator>>,
     drag_state: Res<crate::drag::DragState>,
+    drag_conn_state: Res<DragConnectionState>,
 ) {
     if !selection_state.is_enabled {
         return;
     }
 
-    // Don't handle selection if dragging
-    if drag_state.dragging_entity.is_some() {
+    // Don't handle selection if dragging or drag-connecting
+    if drag_state.dragging_entity.is_some() || drag_conn_state.is_dragging {
         return;
     }
 
@@ -228,4 +247,187 @@ pub fn handle_deleted_selections(
     if should_clear {
         clear_selection(&mut commands, &mut selection_state, &indicator_query);
     }
+}
+
+// ========== Mode 2: Drag-based Connection Systems ==========
+
+/// Start dragging a connection from a connectable object (Mode 2)
+pub fn start_drag_connection(
+    mut commands: Commands,
+    mut drag_conn_state: ResMut<DragConnectionState>,
+    selection_state: Res<SelectionState>,
+    mouse_button: Res<ButtonInput<MouseButton>>,
+    windows: Query<&Window>,
+    camera_q: Query<(&Camera, &GlobalTransform)>,
+    connectable_query: Query<(Entity, &Transform), With<Connectable>>,
+    drag_state: Res<crate::drag::DragState>,
+) {
+    // Only work when connection mode is enabled
+    if !selection_state.is_enabled {
+        return;
+    }
+
+    // Don't start if already dragging an object or dragging a connection
+    if drag_state.dragging_entity.is_some() || drag_conn_state.is_dragging {
+        return;
+    }
+
+    if mouse_button.just_pressed(MouseButton::Left) {
+        if let Some(world_pos) = get_cursor_world_position(&windows, &camera_q) {
+            let mut closest_entity = None;
+            let mut closest_distance = f32::INFINITY;
+
+            for (entity, transform) in connectable_query.iter() {
+                let object_pos = transform.translation.truncate();
+                let distance = object_pos.distance(world_pos);
+
+                let max_radius = 50.0;
+
+                if distance < max_radius && distance < closest_distance {
+                    closest_distance = distance;
+                    closest_entity = Some((entity, object_pos));
+                }
+            }
+
+            if let Some((entity, pos)) = closest_entity {
+                // Start dragging connection from this entity
+                drag_conn_state.is_dragging = true;
+                drag_conn_state.start_entity = Some(entity);
+                drag_conn_state.start_position = pos;
+
+                // Spawn visual line
+                spawn_connection_drag_line(&mut commands);
+            }
+        }
+    }
+}
+
+/// Update the visual line while dragging connection (Mode 2)
+pub fn update_drag_connection(
+    drag_conn_state: Res<DragConnectionState>,
+    windows: Query<&Window>,
+    camera_q: Query<(&Camera, &GlobalTransform)>,
+    mut gizmos: Gizmos,
+    transform_query: Query<&Transform>,
+) {
+    if !drag_conn_state.is_dragging {
+        return;
+    }
+
+    if let Some(start_entity) = drag_conn_state.start_entity {
+        if let Ok(start_transform) = transform_query.get(start_entity) {
+            let start_pos = start_transform.translation.truncate();
+            
+            if let Some(cursor_pos) = get_cursor_world_position(&windows, &camera_q) {
+                // Draw a line from start entity to cursor
+                gizmos.line_2d(start_pos, cursor_pos, Color::srgb(0.2, 0.8, 0.2));
+                
+                // Draw a circle at the start point
+                gizmos.circle_2d(start_pos, 8.0, Color::srgb(0.0, 1.0, 0.0));
+                
+                // Draw a circle at the cursor
+                gizmos.circle_2d(cursor_pos, 8.0, Color::srgb(0.2, 0.8, 0.2));
+            }
+        }
+    }
+}
+
+/// End drag connection and create constraint if over another object (Mode 2)
+pub fn end_drag_connection(
+    mut commands: Commands,
+    mut drag_conn_state: ResMut<DragConnectionState>,
+    selection_state: Res<SelectionState>,
+    mouse_button: Res<ButtonInput<MouseButton>>,
+    windows: Query<&Window>,
+    camera_q: Query<(&Camera, &GlobalTransform)>,
+    connectable_query: Query<(Entity, &Transform), With<Connectable>>,
+    transform_query: Query<&Transform>,
+    line_query: Query<Entity, With<ConnectionDragLine>>,
+) {
+    if !drag_conn_state.is_dragging {
+        return;
+    }
+
+    if mouse_button.just_released(MouseButton::Left) {
+        let mut connection_created = false;
+
+        if let Some(start_entity) = drag_conn_state.start_entity {
+            if let Some(cursor_pos) = get_cursor_world_position(&windows, &camera_q) {
+                // Find if cursor is over another connectable object
+                let mut target_entity = None;
+                let mut closest_distance = f32::INFINITY;
+
+                for (entity, transform) in connectable_query.iter() {
+                    if entity == start_entity {
+                        continue; // Skip the start entity
+                    }
+
+                    let object_pos = transform.translation.truncate();
+                    let distance = object_pos.distance(cursor_pos);
+
+                    let max_radius = 50.0;
+
+                    if distance < max_radius && distance < closest_distance {
+                        closest_distance = distance;
+                        target_entity = Some(entity);
+                    }
+                }
+
+                // If we found a target, create the connection
+                if let Some(end_entity) = target_entity {
+                    if let (Ok(start_transform), Ok(end_transform)) = (
+                        transform_query.get(start_entity),
+                        transform_query.get(end_entity),
+                    ) {
+                        let start_pos = start_transform.translation.truncate();
+                        let end_pos = end_transform.translation.truncate();
+
+                        let midpoint = (start_pos + end_pos) / 2.0;
+                        let anchor1 = midpoint - start_pos;
+                        let anchor2 = midpoint - end_pos;
+
+                        match selection_state.constraint_type {
+                            ConstraintType::Fixed => {
+                                let joint = FixedJointBuilder::new()
+                                    .local_anchor1(anchor1)
+                                    .local_anchor2(anchor2);
+
+                                commands.entity(end_entity).insert((
+                                    ImpulseJoint::new(start_entity, joint),
+                                    UserCreatedJoint,
+                                ));
+                            }
+                            ConstraintType::Hinge => {
+                                let joint = RevoluteJointBuilder::new()
+                                    .local_anchor1(anchor1)
+                                    .local_anchor2(anchor2);
+
+                                commands.entity(end_entity).insert((
+                                    ImpulseJoint::new(start_entity, joint),
+                                    UserCreatedJoint,
+                                ));
+                            }
+                        }
+
+                        connection_created = true;
+                    }
+                }
+            }
+        }
+
+        // Clean up drag line
+        for entity in line_query.iter() {
+            commands.entity(entity).despawn();
+        }
+
+        // Reset drag connection state
+        drag_conn_state.is_dragging = false;
+        drag_conn_state.start_entity = None;
+        drag_conn_state.start_position = Vec2::ZERO;
+    }
+}
+
+fn spawn_connection_drag_line(commands: &mut Commands) {
+    // This is just a marker component - the actual line is drawn using Gizmos
+    commands.spawn(ConnectionDragLine);
 }

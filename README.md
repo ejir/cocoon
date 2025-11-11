@@ -51,12 +51,23 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
 - **Left Mouse Drag (Create Mode)**: When Box or Iron is selected, drag on empty space to create objects with custom sizes (20-200 pixels)
 
 ### Connection System Controls
-When Fixed or Hinge constraint tool is selected:
+When Fixed or Hinge constraint tool is selected, you can use either of two connection modes:
+
+**Mode 1: Click-to-Connect** (Original method)
 1. **First Click**: Select the first object (highlighted with green indicator)
 2. **Second Click**: Select the second object (highlighted with blue indicator)
 3. **C or Enter**: Create the constraint between the two selected objects
 4. **Escape**: Cancel selection and clear indicators
 - **Click on selected object again**: Deselect and clear all selections
+
+**Mode 2: Drag-to-Connect** (New method)
+1. **Click and Hold** on the first object
+2. **Drag** to the second object (a green line shows the connection)
+3. **Release** over the second object to create the connection instantly
+- If released over empty space, the connection is cancelled
+- Visual feedback: green circles at start/end points and connecting line
+
+**Both modes:**
 - Constraints are created at the midpoint between the two objects
 - Fixed constraints prevent any relative movement between objects
 - Hinge constraints allow rotation around the connection point
@@ -176,16 +187,27 @@ Create custom-sized objects by dragging:
 
 ### Connection System
 
-Create physics constraints between any two objects:
+Create physics constraints between any two objects using two different modes:
+
+**Mode 1: Click-to-Connect**
 1. Select Fixed (X) or Hinge (H) constraint tool from the top bar
 2. Click on the first object to select it (green selection indicator appears)
 3. Click on a second object to select it (blue selection indicator appears)
 4. Press C or Enter to create the constraint
-5. **Fixed Constraints**: Rigidly attach two objects with no relative movement
-6. **Hinge Constraints**: Create a rotational joint allowing objects to pivot around the connection point
-7. Constraints are created at the midpoint between the two objects
-8. Visual indicators follow the selected objects and can be cleared with Escape
-9. All objects (ragdoll parts, bombs, boxes, iron blocks) can be connected
+5. Visual indicators follow the selected objects and can be cleared with Escape
+
+**Mode 2: Drag-to-Connect**
+1. Select Fixed (X) or Hinge (H) constraint tool from the top bar
+2. Click and hold on the first object
+3. Drag to the second object (green line and circles show the connection path)
+4. Release the mouse button over the second object to instantly create the constraint
+5. If released over empty space, the connection is cancelled
+
+**Constraint Types:**
+- **Fixed Constraints**: Rigidly attach two objects with no relative movement
+- **Hinge Constraints**: Create a rotational joint allowing objects to pivot around the connection point
+- Constraints are created at the midpoint between the two objects
+- All objects (ragdoll parts, bombs, boxes, iron blocks) can be connected
 
 ### Physics Configuration
 
