@@ -10,6 +10,10 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
   - Joints have health and can be damaged by explosions, collisions, and excessive stress
   - Fractured body parts darken visually to show damage
   - When joint health reaches zero, limbs detach from the body with blood effects
+- **Connection System**: Create physics constraints between any two objects
+  - Fixed constraints for rigid connections
+  - Hinge constraints for rotational joints
+  - Visual selection indicators (green for first object, blue for second)
 - **Realistic Shockwave Explosions**: Timed explosives with propagating shockwaves, pressure-based damage, and physics
 - **Wooden Boxes**: Destructible wooden boxes that can be damaged and destroyed by explosions and fire
 - **Iron Blocks**: Indestructible metal blocks that are affected by explosion forces but cannot be damaged or destroyed
@@ -30,6 +34,8 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
   - **Box (W)**: Select wooden box for spawning (drag to create custom sizes)
   - **Iron (I)**: Select iron block for spawning (drag to create custom sizes)
   - **Fire (F)**: Select fire tool for spawning
+  - **Fixed (X)**: Select fixed constraint tool for connecting objects
+  - **Hinge (H)**: Select hinge constraint tool for connecting objects
 - **Left Mouse Click**: Spawn the selected object at cursor position (when not dragging)
 - **Left Mouse Drag** (Box/Iron): Click and drag to create boxes or iron blocks with custom sizes
 
@@ -43,6 +49,17 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
 ### Mouse Controls
 - **Left Mouse Drag**: Click and drag to move ragdoll parts, bombs, wooden boxes, and iron blocks
 - **Left Mouse Drag (Create Mode)**: When Box or Iron is selected, drag on empty space to create objects with custom sizes (20-200 pixels)
+
+### Connection System Controls
+When Fixed or Hinge constraint tool is selected:
+1. **First Click**: Select the first object (highlighted with green indicator)
+2. **Second Click**: Select the second object (highlighted with blue indicator)
+3. **C or Enter**: Create the constraint between the two selected objects
+4. **Escape**: Cancel selection and clear indicators
+- **Click on selected object again**: Deselect and clear all selections
+- Constraints are created at the midpoint between the two objects
+- Fixed constraints prevent any relative movement between objects
+- Hinge constraints allow rotation around the connection point
 
 ## Technical Details
 
@@ -149,6 +166,19 @@ Create custom-sized objects by dragging:
 4. Release to spawn the object at the final size
 5. Size constraints: minimum 20 pixels, maximum 500 pixels per dimension
 6. Health and mass scale proportionally with object size
+
+### Connection System
+
+Create physics constraints between any two objects:
+1. Select Fixed (X) or Hinge (H) constraint tool from the top bar
+2. Click on the first object to select it (green selection indicator appears)
+3. Click on a second object to select it (blue selection indicator appears)
+4. Press C or Enter to create the constraint
+5. **Fixed Constraints**: Rigidly attach two objects with no relative movement
+6. **Hinge Constraints**: Create a rotational joint allowing objects to pivot around the connection point
+7. Constraints are created at the midpoint between the two objects
+8. Visual indicators follow the selected objects and can be cleared with Escape
+9. All objects (ragdoll parts, bombs, boxes, iron blocks) can be connected
 
 ### Physics Configuration
 

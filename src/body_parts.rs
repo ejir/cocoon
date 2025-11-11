@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
 use crate::components::{Flammable, Health, RagdollPart};
+use crate::connection::Connectable;
 use crate::damage::JointHealth;
 use crate::drag::Draggable;
 
@@ -55,6 +56,7 @@ pub fn spawn_body_part(commands: &mut Commands, config: BodyPartConfig) -> Entit
                 ignition_threshold: 0.5,
             },
             Draggable,
+            Connectable,
         ))
         .id()
 }

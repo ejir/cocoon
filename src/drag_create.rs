@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
 use crate::components::{Flammable, Health};
+use crate::connection::Connectable;
 use crate::drag::{Draggable, DragState};
 use crate::iron_block::IronBlock;
 use crate::ui_topbar::{ObjectType, SelectedObject};
@@ -152,6 +153,7 @@ fn spawn_wooden_box_with_size(commands: &mut Commands, position: Vec2, size: Vec
         Velocity::default(),
         WoodenBox,
         Draggable,
+        Connectable,
         Health {
             current: 100.0 * (size.x * size.y) / (60.0 * 60.0), // Scale health with size
             max: 100.0 * (size.x * size.y) / (60.0 * 60.0),
@@ -179,5 +181,6 @@ fn spawn_iron_block_with_size(commands: &mut Commands, position: Vec2, size: Vec
         Velocity::default(),
         IronBlock,
         Draggable,
+        Connectable,
     ));
 }

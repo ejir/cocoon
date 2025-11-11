@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use crate::bomb::spawn_bomb_from_ui;
 use crate::combustion::spawn_fire_from_ui;
+use crate::connection::{ConstraintType, SelectionState};
 use crate::drag::DragState;
 use crate::iron_block::spawn_iron_block_from_ui;
 use crate::ragdoll::spawn_ragdoll_from_ui;
@@ -15,6 +16,8 @@ pub enum ObjectType {
     WoodenBox,
     IronBlock,
     Fire,
+    FixedConstraint,
+    HingeConstraint,
 }
 
 #[derive(Resource)]
@@ -59,6 +62,8 @@ pub fn setup_ui_topbar(mut commands: Commands) {
             create_object_button(parent, ObjectType::WoodenBox, "Box (W)", false);
             create_object_button(parent, ObjectType::IronBlock, "Iron (I)", false);
             create_object_button(parent, ObjectType::Fire, "Fire (F)", false);
+            create_object_button(parent, ObjectType::FixedConstraint, "Fixed (X)", false);
+            create_object_button(parent, ObjectType::HingeConstraint, "Hinge (H)", false);
         });
 }
 
@@ -153,6 +158,40 @@ pub fn spawn_selected_object_on_click(
                 ObjectType::WoodenBox => {},
                 ObjectType::IronBlock => {},
                 ObjectType::Fire => spawn_fire_from_ui(&mut commands, world_pos, &flammable_query),
+                // FixedConstraint and HingeConstraint are handled by the connection system
+                ObjectType::FixedConstraint => {},
+                ObjectType::HingeConstraint => {},
+            }
+        }
+    }
+}
+
+pub fn sync_selection_with_connection_system(
+    mut commands: Commands,
+    selected_object: Res<SelectedObject>,
+    mut selection_state: ResMut<SelectionState>,
+    indicator_query: Query<Entity, With<crate::connection::SelectionIndicator>>,
+) {
+    if selected_object.is_changed() {
+        match selected_object.object_type {
+            ObjectType::FixedConstraint => {
+                selection_state.is_enabled = true;
+                selection_state.constraint_type = ConstraintType::Fixed;
+            }
+            ObjectType::HingeConstraint => {
+                selection_state.is_enabled = true;
+                selection_state.constraint_type = ConstraintType::Hinge;
+            }
+            _ => {
+                // Clear selections when switching to non-constraint mode
+                if selection_state.is_enabled {
+                    for entity in indicator_query.iter() {
+                        commands.entity(entity).despawn();
+                    }
+                    selection_state.first_selected = None;
+                    selection_state.second_selected = None;
+                }
+                selection_state.is_enabled = false;
             }
         }
     }

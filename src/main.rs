@@ -7,6 +7,7 @@ mod body_parts;
 mod bomb;
 mod combustion;
 mod components;
+mod connection;
 mod constants;
 mod damage;
 mod drag;
@@ -30,6 +31,10 @@ use bomb::{bomb_timer_system, spawn_bomb_on_keypress};
 use combustion::{
     animate_fire_particles, apply_fire_damage, ignite_ragdoll_on_keypress, spread_fire,
 };
+use connection::{
+    create_constraint_system, handle_deleted_selections, handle_object_selection,
+    update_selection_indicators, SelectionState,
+};
 use damage::{apply_explosive_joint_damage, check_joint_damage, collision_joint_damage, detect_impact_damage, track_velocity, visualize_fractures};
 use drag::{end_drag_system, start_drag_system, update_drag_system, DragState};
 use drag_create::{end_create_drag_system, start_create_drag_system, update_create_drag_system, CreateDragState};
@@ -38,7 +43,7 @@ use physics::{apply_explosion, cleanup_debris};
 use ragdoll::spawn_ragdoll_on_keypress;
 use setup::setup;
 use shockwave::{animate_explosion_core, animate_shockwave_visual, shockwave_joint_damage, update_shockwave};
-use ui_topbar::{handle_button_clicks, setup_ui_topbar, spawn_selected_object_on_click, SelectedObject};
+use ui_topbar::{handle_button_clicks, setup_ui_topbar, spawn_selected_object_on_click, sync_selection_with_connection_system, SelectedObject};
 use wooden_box::spawn_wooden_box_on_keypress;
 
 fn main() {
@@ -56,6 +61,7 @@ fn main() {
         .init_resource::<DragState>()
         .init_resource::<CreateDragState>()
         .init_resource::<SelectedObject>()
+        .init_resource::<SelectionState>()
         .add_systems(Startup, (setup, setup_ui_topbar))
         .add_systems(
             Update,
@@ -115,7 +121,16 @@ fn main() {
         )
         .add_systems(
             Update,
-            (handle_button_clicks, spawn_selected_object_on_click),
+            (handle_button_clicks, spawn_selected_object_on_click, sync_selection_with_connection_system),
+        )
+        .add_systems(
+            Update,
+            (
+                handle_object_selection,
+                update_selection_indicators,
+                create_constraint_system,
+                handle_deleted_selections,
+            ),
         )
         .run();
 }
