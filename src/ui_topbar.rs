@@ -18,6 +18,7 @@ pub enum ObjectType {
     Fire,
     FixedConstraint,
     HingeConstraint,
+    SpringConstraint,
 }
 
 #[derive(Resource)]
@@ -64,6 +65,7 @@ pub fn setup_ui_topbar(mut commands: Commands) {
             create_object_button(parent, ObjectType::Fire, "Fire (F)", false);
             create_object_button(parent, ObjectType::FixedConstraint, "Fixed (X)", false);
             create_object_button(parent, ObjectType::HingeConstraint, "Hinge (H)", false);
+            create_object_button(parent, ObjectType::SpringConstraint, "Spring (S)", false);
         });
 }
 
@@ -158,9 +160,10 @@ pub fn spawn_selected_object_on_click(
                 ObjectType::WoodenBox => {},
                 ObjectType::IronBlock => {},
                 ObjectType::Fire => spawn_fire_from_ui(&mut commands, world_pos, &flammable_query),
-                // FixedConstraint and HingeConstraint are handled by the connection system
+                // FixedConstraint, HingeConstraint, and SpringConstraint are handled by the connection system
                 ObjectType::FixedConstraint => {},
                 ObjectType::HingeConstraint => {},
+                ObjectType::SpringConstraint => {},
             }
         }
     }
@@ -181,6 +184,10 @@ pub fn sync_selection_with_connection_system(
             ObjectType::HingeConstraint => {
                 selection_state.is_enabled = true;
                 selection_state.constraint_type = ConstraintType::Hinge;
+            }
+            ObjectType::SpringConstraint => {
+                selection_state.is_enabled = true;
+                selection_state.constraint_type = ConstraintType::Spring;
             }
             _ => {
                 // Clear selections when switching to non-constraint mode

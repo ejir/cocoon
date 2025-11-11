@@ -35,6 +35,7 @@ use connection::{
     create_constraint_system, handle_deleted_selections, handle_object_selection,
     update_selection_indicators, SelectionState, DragConnectionState,
     start_drag_connection, update_drag_connection, end_drag_connection,
+    update_hover_indicator, update_hover_indicator_position,
 };
 use damage::{apply_explosive_joint_damage, check_joint_damage, collision_joint_damage, detect_impact_damage, track_velocity, visualize_fractures};
 use drag::{end_drag_system, start_drag_system, update_drag_system, DragState};
@@ -128,6 +129,9 @@ fn main() {
         .add_systems(
             Update,
             (
+                // Hover highlighting
+                update_hover_indicator,
+                update_hover_indicator_position,
                 // Mode 1: Click-based connection (existing)
                 handle_object_selection,
                 update_selection_indicators,
