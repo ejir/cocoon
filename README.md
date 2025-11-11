@@ -147,7 +147,7 @@ Create custom-sized objects by dragging:
 2. Click and hold left mouse button on empty space (not on an existing object)
 3. Drag to define the size of the object - a semi-transparent preview shows the size
 4. Release to spawn the object at the final size
-5. Size constraints: minimum 20 pixels, maximum 200 pixels per dimension
+5. Size constraints: minimum 20 pixels, maximum 500 pixels per dimension
 6. Health and mass scale proportionally with object size
 
 ### Physics Configuration

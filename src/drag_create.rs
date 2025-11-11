@@ -21,7 +21,7 @@ pub struct CreateDragState {
 pub struct PreviewEntity;
 
 const MIN_SIZE: f32 = 20.0;
-const MAX_SIZE: f32 = 200.0;
+const MAX_SIZE: f32 = 500.0;
 
 /// Start drag-to-create when clicking on empty space
 pub fn start_create_drag_system(
