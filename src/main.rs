@@ -10,6 +10,7 @@ mod components;
 mod constants;
 mod damage;
 mod drag;
+mod drag_create;
 mod entity_finder;
 mod explosion;
 mod iron_block;
@@ -31,6 +32,7 @@ use combustion::{
 };
 use damage::{apply_explosive_joint_damage, check_joint_damage, collision_joint_damage, detect_impact_damage, track_velocity, visualize_fractures};
 use drag::{end_drag_system, start_drag_system, update_drag_system, DragState};
+use drag_create::{end_create_drag_system, start_create_drag_system, update_create_drag_system, CreateDragState};
 use iron_block::spawn_iron_block_on_keypress;
 use physics::{apply_explosion, cleanup_debris};
 use ragdoll::spawn_ragdoll_on_keypress;
@@ -52,6 +54,7 @@ fn main() {
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
         .add_plugins(RapierDebugRenderPlugin::default())
         .init_resource::<DragState>()
+        .init_resource::<CreateDragState>()
         .init_resource::<SelectedObject>()
         .add_systems(Startup, (setup, setup_ui_topbar))
         .add_systems(
@@ -101,7 +104,14 @@ fn main() {
         )
         .add_systems(
             Update,
-            (start_drag_system, update_drag_system, end_drag_system).chain(),
+            (
+                start_drag_system,
+                start_create_drag_system,
+                update_drag_system,
+                update_create_drag_system,
+                end_drag_system,
+                end_create_drag_system,
+            ).chain(),
         )
         .add_systems(
             Update,

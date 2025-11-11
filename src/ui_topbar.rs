@@ -149,8 +149,9 @@ pub fn spawn_selected_object_on_click(
             match selected_object.object_type {
                 ObjectType::Ragdoll => spawn_ragdoll_from_ui(&mut commands, world_pos),
                 ObjectType::Bomb => spawn_bomb_from_ui(&mut commands, world_pos),
-                ObjectType::WoodenBox => spawn_wooden_box_from_ui(&mut commands, world_pos),
-                ObjectType::IronBlock => spawn_iron_block_from_ui(&mut commands, world_pos),
+                // WoodenBox and IronBlock now use drag-to-create, so skip here
+                ObjectType::WoodenBox => {},
+                ObjectType::IronBlock => {},
                 ObjectType::Fire => spawn_fire_from_ui(&mut commands, world_pos, &flammable_query),
             }
         }

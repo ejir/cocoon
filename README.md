@@ -27,10 +27,11 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
 - **Top Bar**: Click buttons to select which object to spawn
   - **Ragdoll (R)**: Select ragdoll for spawning
   - **Bomb (B)**: Select bomb for spawning
-  - **Box (W)**: Select wooden box for spawning
-  - **Iron (I)**: Select iron block for spawning
+  - **Box (W)**: Select wooden box for spawning (drag to create custom sizes)
+  - **Iron (I)**: Select iron block for spawning (drag to create custom sizes)
   - **Fire (F)**: Select fire tool for spawning
 - **Left Mouse Click**: Spawn the selected object at cursor position (when not dragging)
+- **Left Mouse Drag** (Box/Iron): Click and drag to create boxes or iron blocks with custom sizes
 
 ### Keyboard Shortcuts (Alternative)
 - **R**: Spawn a ragdoll at cursor position
@@ -41,6 +42,7 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
 
 ### Mouse Controls
 - **Left Mouse Drag**: Click and drag to move ragdoll parts, bombs, wooden boxes, and iron blocks
+- **Left Mouse Drag (Create Mode)**: When Box or Iron is selected, drag on empty space to create objects with custom sizes (20-200 pixels)
 
 ## Technical Details
 
@@ -137,6 +139,16 @@ Interactive mouse-based object manipulation:
 3. Follows cursor position with offset from original click point
 4. Release mouse button to drop object and restore dynamic physics behavior
 5. Supports dragging individual ragdoll parts - joints remain connected
+
+### Drag-to-Create System
+
+Create custom-sized objects by dragging:
+1. Select Box (W) or Iron (I) from the top bar
+2. Click and hold left mouse button on empty space (not on an existing object)
+3. Drag to define the size of the object - a semi-transparent preview shows the size
+4. Release to spawn the object at the final size
+5. Size constraints: minimum 20 pixels, maximum 200 pixels per dimension
+6. Health and mass scale proportionally with object size
 
 ### Physics Configuration
 
