@@ -7,6 +7,7 @@ use crate::utils::get_cursor_world_position;
 pub enum ConstraintType {
     Fixed,
     Hinge,
+    Spring,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -50,6 +51,12 @@ pub struct ConnectionDragLine;
 pub struct SelectionIndicator {
     pub target_entity: Entity,
     pub is_first: bool,
+}
+
+/// Component for the hover indicator that shows when mouse is over a connectable object
+#[derive(Component)]
+pub struct HoverIndicator {
+    pub target_entity: Entity,
 }
 
 #[derive(Component)]
@@ -207,6 +214,17 @@ pub fn create_constraint_system(
                             UserCreatedJoint,
                         ));
                     }
+                    ConstraintType::Spring => {
+                        let rest_length = (first_pos - second_pos).length();
+                        let joint = SpringJointBuilder::new(rest_length, 100.0, 5.0)
+                            .local_anchor1(anchor1)
+                            .local_anchor2(anchor2);
+
+                        commands.entity(second).insert((
+                            ImpulseJoint::new(first, joint),
+                            UserCreatedJoint,
+                        ));
+                    }
                 }
 
                 for entity in indicator_query.iter() {
@@ -246,6 +264,85 @@ pub fn handle_deleted_selections(
 
     if should_clear {
         clear_selection(&mut commands, &mut selection_state, &indicator_query);
+    }
+}
+
+/// Update hover indicator to highlight connectable objects under cursor
+pub fn update_hover_indicator(
+    mut commands: Commands,
+    selection_state: Res<SelectionState>,
+    windows: Query<&Window>,
+    camera_q: Query<(&Camera, &GlobalTransform)>,
+    connectable_query: Query<(Entity, &Transform), With<Connectable>>,
+    hover_query: Query<Entity, With<HoverIndicator>>,
+    drag_conn_state: Res<DragConnectionState>,
+) {
+    // Only show hover indicator when in connect mode and not currently dragging
+    if !selection_state.is_enabled || drag_conn_state.is_dragging {
+        // Remove any existing hover indicators
+        for entity in hover_query.iter() {
+            commands.entity(entity).despawn();
+        }
+        return;
+    }
+
+    if let Some(world_pos) = get_cursor_world_position(&windows, &camera_q) {
+        let mut closest_entity = None;
+        let mut closest_distance = f32::INFINITY;
+
+        for (entity, transform) in connectable_query.iter() {
+            let object_pos = transform.translation.truncate();
+            let distance = object_pos.distance(world_pos);
+
+            let max_radius = 50.0;
+
+            if distance < max_radius && distance < closest_distance {
+                closest_distance = distance;
+                closest_entity = Some(entity);
+            }
+        }
+
+        // Remove old hover indicator
+        for entity in hover_query.iter() {
+            commands.entity(entity).despawn();
+        }
+
+        // Spawn new hover indicator if hovering over an object
+        if let Some(entity) = closest_entity {
+            spawn_hover_indicator(&mut commands, entity);
+        }
+    } else {
+        // Cursor not in window, remove hover indicators
+        for entity in hover_query.iter() {
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
+fn spawn_hover_indicator(commands: &mut Commands, target_entity: Entity) {
+    let color = Color::srgba(1.0, 1.0, 0.3, 0.3); // Yellow with low alpha
+
+    commands.spawn((
+        Sprite {
+            color,
+            custom_size: Some(Vec2::new(65.0, 65.0)),
+            ..default()
+        },
+        Transform::from_xyz(0.0, 0.0, 0.5),
+        HoverIndicator { target_entity },
+    ));
+}
+
+/// Update hover indicator position to follow target entity
+pub fn update_hover_indicator_position(
+    mut indicator_query: Query<(&mut Transform, &HoverIndicator)>,
+    transform_query: Query<&Transform, Without<HoverIndicator>>,
+) {
+    for (mut indicator_transform, indicator) in indicator_query.iter_mut() {
+        if let Ok(target_transform) = transform_query.get(indicator.target_entity) {
+            indicator_transform.translation = target_transform.translation + Vec3::new(0.0, 0.0, 0.5);
+            indicator_transform.rotation = target_transform.rotation;
+        }
     }
 }
 
@@ -399,6 +496,17 @@ pub fn end_drag_connection(
                             }
                             ConstraintType::Hinge => {
                                 let joint = RevoluteJointBuilder::new()
+                                    .local_anchor1(anchor1)
+                                    .local_anchor2(anchor2);
+
+                                commands.entity(end_entity).insert((
+                                    ImpulseJoint::new(start_entity, joint),
+                                    UserCreatedJoint,
+                                ));
+                            }
+                            ConstraintType::Spring => {
+                                let rest_length = (start_pos - end_pos).length();
+                                let joint = SpringJointBuilder::new(rest_length, 100.0, 5.0)
                                     .local_anchor1(anchor1)
                                     .local_anchor2(anchor2);
 
