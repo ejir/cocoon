@@ -7,7 +7,6 @@ pub fn setup(mut commands: Commands) {
     spawn_ground(&mut commands);
 
     commands.spawn((
-        Text::new("R: Spawn Ragdoll | B: Spawn Bomb"),
         Node {
             position_type: PositionType::Absolute,
             top: Val::Px(10.0),
