@@ -32,6 +32,26 @@ impl ConnectionMaterial {
             ConnectionMaterial::Plastic => 1.0,
         }
     }
+    
+    /// Get the color for visual representation
+    pub fn color(&self) -> Color {
+        match self {
+            ConnectionMaterial::Wood => Color::srgb(0.6, 0.4, 0.2),      // Brown
+            ConnectionMaterial::Metal => Color::srgb(0.7, 0.7, 0.8),     // Gray/Silver
+            ConnectionMaterial::Rope => Color::srgb(0.8, 0.7, 0.5),      // Tan
+            ConnectionMaterial::Plastic => Color::srgb(0.3, 0.6, 0.9),   // Blue
+        }
+    }
+    
+    /// Get the thickness for visual representation
+    pub fn thickness(&self) -> f32 {
+        match self {
+            ConnectionMaterial::Wood => 4.0,
+            ConnectionMaterial::Metal => 3.0,
+            ConnectionMaterial::Rope => 2.0,
+            ConnectionMaterial::Plastic => 3.5,
+        }
+    }
 }
 
 impl Default for ConnectionMaterial {
@@ -92,6 +112,16 @@ pub struct UserCreatedJoint;
 /// Component to store the material of a connection
 #[derive(Component, Clone, Copy)]
 pub struct JointMaterial(pub ConnectionMaterial);
+
+/// Component for visual connection line between connected objects
+#[derive(Component)]
+pub struct ConnectionVisual {
+    pub entity1: Entity,
+    pub entity2: Entity,
+    pub anchor1: Vec2,
+    pub anchor2: Vec2,
+    pub material: ConnectionMaterial,
+}
 
 // Click mode removed - only drag mode is supported
 
@@ -327,6 +357,7 @@ pub fn end_drag_connection(
 
                         match selection_state.constraint_type {
                             ConstraintType::Fixed => {
+                                // Create fixed joint with proper anchor points
                                 let joint = FixedJointBuilder::new()
                                     .local_anchor1(anchor1)
                                     .local_anchor2(anchor2);
@@ -338,6 +369,7 @@ pub fn end_drag_connection(
                                 ));
                             }
                             ConstraintType::Hinge => {
+                                // Create revolute joint with proper anchor points
                                 let joint = RevoluteJointBuilder::new()
                                     .local_anchor1(anchor1)
                                     .local_anchor2(anchor2);
@@ -349,6 +381,9 @@ pub fn end_drag_connection(
                                 ));
                             }
                         }
+                        
+                        // Spawn visual representation of the connection
+                        spawn_connection_visual(&mut commands, start_entity, end_entity, anchor1, anchor2, material);
                     }
                 }
             }
@@ -369,6 +404,105 @@ pub fn end_drag_connection(
 fn spawn_connection_drag_line(commands: &mut Commands) {
     // This is just a marker component - the actual line is drawn using Gizmos
     commands.spawn(ConnectionDragLine);
+}
+
+/// Spawn a visual representation of a connection
+fn spawn_connection_visual(
+    commands: &mut Commands,
+    entity1: Entity,
+    entity2: Entity,
+    anchor1: Vec2,
+    anchor2: Vec2,
+    material: ConnectionMaterial,
+) {
+    commands.spawn((
+        ConnectionVisual {
+            entity1,
+            entity2,
+            anchor1,
+            anchor2,
+            material,
+        },
+        Transform::default(),
+        Visibility::default(),
+    ));
+}
+
+/// Update visual representation of connections
+pub fn update_connection_visuals(
+    visual_query: Query<&ConnectionVisual>,
+    transform_query: Query<&Transform>,
+    mut gizmos: Gizmos,
+) {
+    for visual in visual_query.iter() {
+        if let (Ok(transform1), Ok(transform2)) = (
+            transform_query.get(visual.entity1),
+            transform_query.get(visual.entity2),
+        ) {
+            // Calculate world positions of anchors
+            let pos1 = transform1.translation.truncate();
+            let rot1 = transform1.rotation.to_euler(EulerRot::ZYX).0;
+            let anchor1_world = pos1 + Vec2::new(
+                visual.anchor1.x * rot1.cos() - visual.anchor1.y * rot1.sin(),
+                visual.anchor1.x * rot1.sin() + visual.anchor1.y * rot1.cos(),
+            );
+
+            let pos2 = transform2.translation.truncate();
+            let rot2 = transform2.rotation.to_euler(EulerRot::ZYX).0;
+            let anchor2_world = pos2 + Vec2::new(
+                visual.anchor2.x * rot2.cos() - visual.anchor2.y * rot2.sin(),
+                visual.anchor2.x * rot2.sin() + visual.anchor2.y * rot2.cos(),
+            );
+
+            // Draw the connection line
+            gizmos.line_2d(anchor1_world, anchor2_world, visual.material.color());
+            
+            // Draw small circles at anchor points
+            let thickness = visual.material.thickness();
+            gizmos.circle_2d(anchor1_world, thickness, visual.material.color());
+            gizmos.circle_2d(anchor2_world, thickness, visual.material.color());
+        }
+    }
+}
+
+/// Clean up visual representations when joints are removed
+pub fn cleanup_orphaned_visuals(
+    mut commands: Commands,
+    visual_query: Query<(Entity, &ConnectionVisual)>,
+    entity_query: Query<Entity>,
+) {
+    for (visual_entity, visual) in visual_query.iter() {
+        // Check if either connected entity no longer exists
+        if entity_query.get(visual.entity1).is_err() || entity_query.get(visual.entity2).is_err() {
+            commands.entity(visual_entity).despawn();
+        }
+    }
+}
+
+/// Apply stabilizing damping to connected bodies to prevent shaking
+pub fn apply_material_properties_to_joints(
+    joint_query: Query<(Entity, &ImpulseJoint, &JointMaterial), Added<JointMaterial>>,
+    mut damping_query: Query<&mut Damping>,
+) {
+    for (_entity, joint, material) in joint_query.iter() {
+        // Get the parent entity from the joint
+        let parent = joint.parent;
+        
+        // Apply additional damping to both connected bodies based on material
+        // This helps reduce oscillation and shaking
+        let additional_damping = match material.0 {
+            ConnectionMaterial::Wood => (0.3, 0.8),      // (linear, angular)
+            ConnectionMaterial::Metal => (0.1, 0.3),     // Rigid, less damping needed
+            ConnectionMaterial::Rope => (0.6, 1.5),      // Flexible, needs more damping
+            ConnectionMaterial::Plastic => (0.4, 1.0),   // Balanced
+        };
+        
+        // Apply to parent body
+        if let Ok(mut damping) = damping_query.get_mut(parent) {
+            damping.linear_damping = damping.linear_damping.max(additional_damping.0);
+            damping.angular_damping = damping.angular_damping.max(additional_damping.1);
+        }
+    }
 }
 
 // clear_selections_on_mode_change removed - only one mode now
