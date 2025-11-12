@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::bomb::spawn_bomb_from_ui;
 use crate::combustion::spawn_fire_from_ui;
-use crate::connection::{ConstraintType, SelectionState};
+use crate::connection::{ConstraintType, SelectionState, ConnectionMode, ConnectionModeState};
 use crate::drag::DragState;
 use crate::iron_block::spawn_iron_block_from_ui;
 use crate::ragdoll::spawn_ragdoll_from_ui;
@@ -41,6 +41,9 @@ pub struct ObjectButton {
 
 #[derive(Component)]
 pub struct TopBarUI;
+
+#[derive(Component)]
+pub struct ConnectionModeButton;
 
 pub fn setup_ui_topbar(mut commands: Commands) {
     commands
@@ -174,8 +177,11 @@ pub fn sync_selection_with_connection_system(
     selected_object: Res<SelectedObject>,
     mut selection_state: ResMut<SelectionState>,
     indicator_query: Query<Entity, With<crate::connection::SelectionIndicator>>,
+    button_query: Query<Entity, With<ConnectionModeButton>>,
 ) {
     if selected_object.is_changed() {
+        let was_enabled = selection_state.is_enabled;
+        
         match selected_object.object_type {
             ObjectType::FixedConstraint => {
                 selection_state.is_enabled = true;
@@ -199,6 +205,94 @@ pub fn sync_selection_with_connection_system(
                     selection_state.second_selected = None;
                 }
                 selection_state.is_enabled = false;
+            }
+        }
+        
+        // Show/hide connection mode button based on whether connection mode is active
+        if !was_enabled && selection_state.is_enabled {
+            spawn_connection_mode_button(&mut commands);
+        } else if was_enabled && !selection_state.is_enabled {
+            for entity in button_query.iter() {
+                commands.entity(entity).despawn_recursive();
+            }
+        }
+    }
+}
+
+fn spawn_connection_mode_button(commands: &mut Commands) {
+    commands.spawn((
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(70.0),
+            left: Val::Px(10.0),
+            width: Val::Px(180.0),
+            height: Val::Px(40.0),
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            ..default()
+        },
+        BackgroundColor(Color::srgba(0.2, 0.6, 0.3, 0.9)),
+        Button,
+        ConnectionModeButton,
+    ))
+    .with_children(|parent| {
+        parent.spawn((
+            Text::new("Mode: Drag"),
+            TextFont {
+                font_size: 16.0,
+                ..default()
+            },
+            TextColor(Color::srgb(0.9, 0.9, 0.9)),
+        ));
+    });
+}
+
+pub fn handle_connection_mode_button(
+    mut interaction_query: Query<
+        (&Interaction, &mut BackgroundColor),
+        (Changed<Interaction>, With<ConnectionModeButton>),
+    >,
+    mut text_query: Query<&mut Text>,
+    mut connection_mode: ResMut<ConnectionModeState>,
+    button_query: Query<&Children, With<ConnectionModeButton>>,
+) {
+    for (interaction, mut bg_color) in interaction_query.iter_mut() {
+        match *interaction {
+            Interaction::Pressed => {
+                // Toggle connection mode
+                connection_mode.mode = match connection_mode.mode {
+                    ConnectionMode::Click => ConnectionMode::Drag,
+                    ConnectionMode::Drag => ConnectionMode::Click,
+                };
+                
+                // Update button text
+                if let Ok(children) = button_query.get_single() {
+                    for &child in children.iter() {
+                        if let Ok(mut text) = text_query.get_mut(child) {
+                            *text = Text::new(match connection_mode.mode {
+                                ConnectionMode::Click => "Mode: Click",
+                                ConnectionMode::Drag => "Mode: Drag",
+                            });
+                        }
+                    }
+                }
+                
+                *bg_color = BackgroundColor(match connection_mode.mode {
+                    ConnectionMode::Click => Color::srgba(0.6, 0.4, 0.2, 0.9),
+                    ConnectionMode::Drag => Color::srgba(0.2, 0.6, 0.3, 0.9),
+                });
+            }
+            Interaction::Hovered => {
+                *bg_color = BackgroundColor(match connection_mode.mode {
+                    ConnectionMode::Click => Color::srgba(0.7, 0.5, 0.3, 0.9),
+                    ConnectionMode::Drag => Color::srgba(0.3, 0.7, 0.4, 0.9),
+                });
+            }
+            Interaction::None => {
+                *bg_color = BackgroundColor(match connection_mode.mode {
+                    ConnectionMode::Click => Color::srgba(0.6, 0.4, 0.2, 0.9),
+                    ConnectionMode::Drag => Color::srgba(0.2, 0.6, 0.3, 0.9),
+                });
             }
         }
     }

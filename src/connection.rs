@@ -17,6 +17,19 @@ pub enum ConnectionMode {
 }
 
 #[derive(Resource)]
+pub struct ConnectionModeState {
+    pub mode: ConnectionMode,
+}
+
+impl Default for ConnectionModeState {
+    fn default() -> Self {
+        Self {
+            mode: ConnectionMode::Drag,
+        }
+    }
+}
+
+#[derive(Resource)]
 pub struct SelectionState {
     pub first_selected: Option<Entity>,
     pub second_selected: Option<Entity>,
@@ -68,6 +81,7 @@ pub struct UserCreatedJoint;
 pub fn handle_object_selection(
     mut commands: Commands,
     mut selection_state: ResMut<SelectionState>,
+    connection_mode: Res<ConnectionModeState>,
     mouse_button: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
@@ -77,6 +91,11 @@ pub fn handle_object_selection(
     drag_conn_state: Res<DragConnectionState>,
 ) {
     if !selection_state.is_enabled {
+        return;
+    }
+
+    // Only handle selection in Click mode
+    if connection_mode.mode != ConnectionMode::Click {
         return;
     }
 
@@ -172,11 +191,17 @@ pub fn update_selection_indicators(
 pub fn create_constraint_system(
     mut commands: Commands,
     mut selection_state: ResMut<SelectionState>,
+    connection_mode: Res<ConnectionModeState>,
     keyboard: Res<ButtonInput<KeyCode>>,
     indicator_query: Query<Entity, With<SelectionIndicator>>,
     transform_query: Query<&Transform>,
 ) {
     if !selection_state.is_enabled {
+        return;
+    }
+
+    // Only work in Click mode
+    if connection_mode.mode != ConnectionMode::Click {
         return;
     }
 
@@ -271,14 +296,15 @@ pub fn handle_deleted_selections(
 pub fn update_hover_indicator(
     mut commands: Commands,
     selection_state: Res<SelectionState>,
+    connection_mode: Res<ConnectionModeState>,
     windows: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
     connectable_query: Query<(Entity, &Transform), With<Connectable>>,
     hover_query: Query<Entity, With<HoverIndicator>>,
     drag_conn_state: Res<DragConnectionState>,
 ) {
-    // Only show hover indicator when in connect mode and not currently dragging
-    if !selection_state.is_enabled || drag_conn_state.is_dragging {
+    // Only show hover indicator when in connect mode (Drag mode) and not currently dragging
+    if !selection_state.is_enabled || connection_mode.mode != ConnectionMode::Drag || drag_conn_state.is_dragging {
         // Remove any existing hover indicators
         for entity in hover_query.iter() {
             commands.entity(entity).despawn();
@@ -353,14 +379,19 @@ pub fn start_drag_connection(
     mut commands: Commands,
     mut drag_conn_state: ResMut<DragConnectionState>,
     selection_state: Res<SelectionState>,
+    connection_mode: Res<ConnectionModeState>,
     mouse_button: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
     connectable_query: Query<(Entity, &Transform), With<Connectable>>,
     drag_state: Res<crate::drag::DragState>,
 ) {
-    // Only work when connection mode is enabled
+    // Only work when connection mode is enabled and in Drag mode
     if !selection_state.is_enabled {
+        return;
+    }
+
+    if connection_mode.mode != ConnectionMode::Drag {
         return;
     }
 
@@ -538,4 +569,21 @@ pub fn end_drag_connection(
 fn spawn_connection_drag_line(commands: &mut Commands) {
     // This is just a marker component - the actual line is drawn using Gizmos
     commands.spawn(ConnectionDragLine);
+}
+
+/// Clear selections when switching between connection modes
+pub fn clear_selections_on_mode_change(
+    mut commands: Commands,
+    mut selection_state: ResMut<SelectionState>,
+    connection_mode: Res<ConnectionModeState>,
+    indicator_query: Query<Entity, With<SelectionIndicator>>,
+) {
+    if connection_mode.is_changed() {
+        // Clear click-mode selections when switching modes
+        for entity in indicator_query.iter() {
+            commands.entity(entity).despawn();
+        }
+        selection_state.first_selected = None;
+        selection_state.second_selected = None;
+    }
 }
