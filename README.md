@@ -10,9 +10,10 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
   - Joints have health and can be damaged by explosions, collisions, and excessive stress
   - Fractured body parts darken visually to show damage
   - When joint health reaches zero, limbs detach from the body with blood effects
-- **Connection System**: Create physics constraints between any two objects
-  - Fixed constraints for rigid connections
-  - Hinge constraints for rotational joints
+- **Connection System**: Create physics constraints between any two objects with material selection
+  - Fixed constraints (non-rotatable, like nails) for rigid connections
+  - Hinge constraints (rotatable, like bearings) for rotational joints
+  - Four material types: Wood, Metal, Rope, and Plastic - each with unique strength and flexibility
   - Visual selection indicators (green for first object, blue for second)
 - **Realistic Shockwave Explosions**: Timed explosives with propagating shockwaves, pressure-based damage, and physics
 - **Wooden Boxes**: Destructible wooden boxes that can be damaged and destroyed by explosions and fire
@@ -34,8 +35,9 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
   - **Box (W)**: Select wooden box for spawning (drag to create custom sizes)
   - **Iron (I)**: Select iron block for spawning (drag to create custom sizes)
   - **Fire (F)**: Select fire tool for spawning
-  - **Fixed (X)**: Select fixed constraint tool for connecting objects
-  - **Hinge (H)**: Select hinge constraint tool for connecting objects
+  - **Fixed (X)**: Select fixed constraint tool (non-rotatable connections, like nails)
+  - **Hinge (H)**: Select hinge constraint tool (rotatable connections, like bearings)
+  - **Wood/Metal/Rope/Plastic**: Select material for connections (affects strength and flexibility)
 - **Left Mouse Click**: Spawn the selected object at cursor position (when not dragging)
 - **Left Mouse Drag** (Box/Iron): Click and drag to create boxes or iron blocks with custom sizes
 
@@ -53,6 +55,15 @@ A 2D physics sandbox game built with Bevy engine, inspired by People Playground.
 ### Connection System Controls
 When Fixed or Hinge constraint tool is selected, you can use either of two connection modes:
 
+**Selecting Material:**
+- Click Wood/Metal/Rope/Plastic buttons to choose material for connections
+- Material affects joint strength and flexibility:
+  - **Metal**: Strongest and most rigid (default)
+  - **Wood**: Moderate strength, some flexibility
+  - **Plastic**: Balanced properties
+  - **Rope**: Weakest, most flexible
+- Material can be changed at any time while in connection mode
+
 **Mode 1: Click-to-Connect** (Original method)
 1. **First Click**: Select the first object (highlighted with green indicator)
 2. **Second Click**: Select the second object (highlighted with blue indicator)
@@ -68,9 +79,10 @@ When Fixed or Hinge constraint tool is selected, you can use either of two conne
 - Visual feedback: green circles at start/end points and connecting line
 
 **Both modes:**
-- Constraints are created at the midpoint between the two objects
-- Fixed constraints prevent any relative movement between objects
-- Hinge constraints allow rotation around the connection point
+- Constraints are created at the exact click/release positions on each object
+- **Fixed constraints** (non-rotatable): Like nails - no rotation allowed between connected objects
+- **Hinge constraints** (rotatable): Like bearings - objects can pivot around connection point
+- Material properties affect joint behavior (stiffness, damping)
 
 ## Technical Details
 

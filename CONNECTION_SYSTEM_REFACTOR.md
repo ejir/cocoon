@@ -1,5 +1,12 @@
 # Connection System Refactoring
 
+> **⚠️ NOTE: This document is OUTDATED**  
+> Spring constraint support described in this document has been **removed** in a later refactor.  
+> See [CONNECTION_MATERIALS_REFACTOR.md](CONNECTION_MATERIALS_REFACTOR.md) for the current system which uses:
+> - **Fixed** (non-rotatable, like nails) and **Hinge** (rotatable, like bearings) constraints only
+> - **Material selection** (Wood, Metal, Rope, Plastic) for different joint properties
+> - Spring has been completely removed from the system
+
 ## Overview
 This document describes the refactoring of the connection system to provide better visual feedback and expanded joint type support.
 

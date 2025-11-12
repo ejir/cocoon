@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::bomb::spawn_bomb_from_ui;
 use crate::combustion::spawn_fire_from_ui;
-use crate::connection::{ConstraintType, SelectionState, ConnectionMode, ConnectionModeState};
+use crate::connection::{ConstraintType, SelectionState, ConnectionMode, ConnectionModeState, ConnectionMaterial};
 use crate::drag::DragState;
 use crate::iron_block::spawn_iron_block_from_ui;
 use crate::ragdoll::spawn_ragdoll_from_ui;
@@ -18,7 +18,11 @@ pub enum ObjectType {
     Fire,
     FixedConstraint,
     HingeConstraint,
-    SpringConstraint,
+    // Material selection for connections
+    MaterialWood,
+    MaterialMetal,
+    MaterialRope,
+    MaterialPlastic,
 }
 
 #[derive(Resource)]
@@ -68,7 +72,11 @@ pub fn setup_ui_topbar(mut commands: Commands) {
             create_object_button(parent, ObjectType::Fire, "Fire (F)", false);
             create_object_button(parent, ObjectType::FixedConstraint, "Fixed (X)", false);
             create_object_button(parent, ObjectType::HingeConstraint, "Hinge (H)", false);
-            create_object_button(parent, ObjectType::SpringConstraint, "Spring (S)", false);
+            // Material buttons for connections
+            create_object_button(parent, ObjectType::MaterialWood, "Wood", false);
+            create_object_button(parent, ObjectType::MaterialMetal, "Metal", false);
+            create_object_button(parent, ObjectType::MaterialRope, "Rope", false);
+            create_object_button(parent, ObjectType::MaterialPlastic, "Plastic", false);
         });
 }
 
@@ -163,10 +171,14 @@ pub fn spawn_selected_object_on_click(
                 ObjectType::WoodenBox => {},
                 ObjectType::IronBlock => {},
                 ObjectType::Fire => spawn_fire_from_ui(&mut commands, world_pos, &flammable_query),
-                // FixedConstraint, HingeConstraint, and SpringConstraint are handled by the connection system
+                // FixedConstraint and HingeConstraint are handled by the connection system
                 ObjectType::FixedConstraint => {},
                 ObjectType::HingeConstraint => {},
-                ObjectType::SpringConstraint => {},
+                // Material selection buttons don't spawn objects
+                ObjectType::MaterialWood => {},
+                ObjectType::MaterialMetal => {},
+                ObjectType::MaterialRope => {},
+                ObjectType::MaterialPlastic => {},
             }
         }
     }
@@ -191,9 +203,23 @@ pub fn sync_selection_with_connection_system(
                 selection_state.is_enabled = true;
                 selection_state.constraint_type = ConstraintType::Hinge;
             }
-            ObjectType::SpringConstraint => {
-                selection_state.is_enabled = true;
-                selection_state.constraint_type = ConstraintType::Spring;
+            // Material selection - changes material but keeps connection mode active
+            ObjectType::MaterialWood => {
+                selection_state.material = ConnectionMaterial::Wood;
+                // Don't change is_enabled - keep current connection mode active
+                return;
+            }
+            ObjectType::MaterialMetal => {
+                selection_state.material = ConnectionMaterial::Metal;
+                return;
+            }
+            ObjectType::MaterialRope => {
+                selection_state.material = ConnectionMaterial::Rope;
+                return;
+            }
+            ObjectType::MaterialPlastic => {
+                selection_state.material = ConnectionMaterial::Plastic;
+                return;
             }
             _ => {
                 // Clear selections when switching to non-constraint mode

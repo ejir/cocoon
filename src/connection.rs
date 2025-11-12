@@ -3,11 +3,47 @@ use bevy_rapier2d::prelude::*;
 
 use crate::utils::get_cursor_world_position;
 
+/// Material type for connections, affecting joint strength and behavior
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ConnectionMaterial {
+    Wood,      // Weak, moderate flexibility
+    Metal,     // Strong, rigid
+    Rope,      // Weak, high flexibility
+    Plastic,   // Moderate strength and flexibility
+}
+
+impl ConnectionMaterial {
+    /// Get the compliance (inverse stiffness) for this material
+    pub fn compliance(&self) -> f32 {
+        match self {
+            ConnectionMaterial::Wood => 0.00001,
+            ConnectionMaterial::Metal => 0.000001,
+            ConnectionMaterial::Rope => 0.0001,
+            ConnectionMaterial::Plastic => 0.00005,
+        }
+    }
+    
+    /// Get the damping coefficient for this material
+    pub fn damping(&self) -> f32 {
+        match self {
+            ConnectionMaterial::Wood => 0.5,
+            ConnectionMaterial::Metal => 0.1,
+            ConnectionMaterial::Rope => 2.0,
+            ConnectionMaterial::Plastic => 1.0,
+        }
+    }
+}
+
+impl Default for ConnectionMaterial {
+    fn default() -> Self {
+        ConnectionMaterial::Metal
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ConstraintType {
-    Fixed,
-    Hinge,
-    Spring,
+    Fixed,  // Non-rotatable, like a nail
+    Hinge,  // Rotatable, like a bearing
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -36,6 +72,7 @@ pub struct SelectionState {
     pub first_click_position: Option<Vec2>,
     pub second_click_position: Option<Vec2>,
     pub constraint_type: ConstraintType,
+    pub material: ConnectionMaterial,
     pub is_enabled: bool,
 }
 
@@ -47,6 +84,7 @@ impl Default for SelectionState {
             first_click_position: None,
             second_click_position: None,
             constraint_type: ConstraintType::Fixed,
+            material: ConnectionMaterial::Metal,
             is_enabled: false,
         }
     }
@@ -81,6 +119,10 @@ pub struct Connectable;
 
 #[derive(Component)]
 pub struct UserCreatedJoint;
+
+/// Component to store the material of a connection
+#[derive(Component, Clone, Copy)]
+pub struct JointMaterial(pub ConnectionMaterial);
 
 pub fn handle_object_selection(
     mut commands: Commands,
@@ -233,6 +275,10 @@ pub fn create_constraint_system(
                 let anchor1 = first_click_pos - first_pos;
                 let anchor2 = second_click_pos - second_pos;
 
+                let material = selection_state.material;
+                let compliance = material.compliance();
+                let damping = material.damping();
+
                 match selection_state.constraint_type {
                     ConstraintType::Fixed => {
                         let joint = FixedJointBuilder::new()
@@ -242,6 +288,7 @@ pub fn create_constraint_system(
                         commands.entity(second).insert((
                             ImpulseJoint::new(first, joint),
                             UserCreatedJoint,
+                            JointMaterial(material),
                         ));
                     }
                     ConstraintType::Hinge => {
@@ -252,17 +299,7 @@ pub fn create_constraint_system(
                         commands.entity(second).insert((
                             ImpulseJoint::new(first, joint),
                             UserCreatedJoint,
-                        ));
-                    }
-                    ConstraintType::Spring => {
-                        let rest_length = (first_click_pos - second_click_pos).length();
-                        let joint = SpringJointBuilder::new(rest_length, 100.0, 5.0)
-                            .local_anchor1(anchor1)
-                            .local_anchor2(anchor2);
-
-                        commands.entity(second).insert((
-                            ImpulseJoint::new(first, joint),
-                            UserCreatedJoint,
+                            JointMaterial(material),
                         ));
                     }
                 }
@@ -442,7 +479,7 @@ pub fn start_drag_connection(
                 filter,
             ) {
                 // Check if the hit entity is connectable
-                if let Ok((entity, transform)) = connectable_query.get(entity) {
+                if let Ok((entity, _transform)) = connectable_query.get(entity) {
                     // Start dragging connection from this entity
                     drag_conn_state.is_dragging = true;
                     drag_conn_state.start_entity = Some(entity);
@@ -462,13 +499,12 @@ pub fn update_drag_connection(
     windows: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
     mut gizmos: Gizmos,
-    transform_query: Query<&Transform>,
 ) {
     if !drag_conn_state.is_dragging {
         return;
     }
 
-    if let Some(start_entity) = drag_conn_state.start_entity {
+    if let Some(_start_entity) = drag_conn_state.start_entity {
         let start_pos = drag_conn_state.start_position;
         
         if let Some(cursor_pos) = get_cursor_world_position(&windows, &camera_q) {
@@ -542,6 +578,10 @@ pub fn end_drag_connection(
                         let anchor1 = start_click_pos - start_body_pos;
                         let anchor2 = end_click_pos - end_body_pos;
 
+                        let material = selection_state.material;
+                        let compliance = material.compliance();
+                        let damping = material.damping();
+
                         match selection_state.constraint_type {
                             ConstraintType::Fixed => {
                                 let joint = FixedJointBuilder::new()
@@ -551,6 +591,7 @@ pub fn end_drag_connection(
                                 commands.entity(end_entity).insert((
                                     ImpulseJoint::new(start_entity, joint),
                                     UserCreatedJoint,
+                                    JointMaterial(material),
                                 ));
                             }
                             ConstraintType::Hinge => {
@@ -561,17 +602,7 @@ pub fn end_drag_connection(
                                 commands.entity(end_entity).insert((
                                     ImpulseJoint::new(start_entity, joint),
                                     UserCreatedJoint,
-                                ));
-                            }
-                            ConstraintType::Spring => {
-                                let rest_length = (start_click_pos - end_click_pos).length();
-                                let joint = SpringJointBuilder::new(rest_length, 100.0, 5.0)
-                                    .local_anchor1(anchor1)
-                                    .local_anchor2(anchor2);
-
-                                commands.entity(end_entity).insert((
-                                    ImpulseJoint::new(start_entity, joint),
-                                    UserCreatedJoint,
+                                    JointMaterial(material),
                                 ));
                             }
                         }
