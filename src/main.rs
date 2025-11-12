@@ -32,10 +32,9 @@ use combustion::{
     animate_fire_particles, apply_fire_damage, ignite_ragdoll_on_keypress, spread_fire,
 };
 use connection::{
-    create_constraint_system, handle_deleted_selections, handle_object_selection,
-    update_selection_indicators, SelectionState, DragConnectionState, ConnectionModeState,
+    SelectionState, DragConnectionState,
     start_drag_connection, update_drag_connection, end_drag_connection,
-    update_hover_indicator, update_hover_indicator_position, clear_selections_on_mode_change,
+    update_hover_indicator, update_hover_indicator_position,
 };
 use damage::{apply_explosive_joint_damage, check_joint_damage, collision_joint_damage, detect_impact_damage, track_velocity, visualize_fractures};
 use drag::{end_drag_system, start_drag_system, update_drag_system, DragState};
@@ -45,7 +44,7 @@ use physics::{apply_explosion, cleanup_debris};
 use ragdoll::spawn_ragdoll_on_keypress;
 use setup::setup;
 use shockwave::{animate_explosion_core, animate_shockwave_visual, shockwave_joint_damage, update_shockwave};
-use ui_topbar::{handle_button_clicks, setup_ui_topbar, spawn_selected_object_on_click, sync_selection_with_connection_system, handle_connection_mode_button, SelectedObject};
+use ui_topbar::{handle_button_clicks, setup_ui_topbar, spawn_selected_object_on_click, sync_selection_with_connection_system, SelectedObject};
 use wooden_box::spawn_wooden_box_on_keypress;
 
 fn main() {
@@ -65,7 +64,6 @@ fn main() {
         .init_resource::<SelectedObject>()
         .init_resource::<SelectionState>()
         .init_resource::<DragConnectionState>()
-        .init_resource::<ConnectionModeState>()
         .add_systems(Startup, (setup, setup_ui_topbar))
         .add_systems(
             Update,
@@ -125,22 +123,15 @@ fn main() {
         )
         .add_systems(
             Update,
-            (handle_button_clicks, spawn_selected_object_on_click, sync_selection_with_connection_system, handle_connection_mode_button),
+            (handle_button_clicks, spawn_selected_object_on_click, sync_selection_with_connection_system),
         )
         .add_systems(
             Update,
             (
-                // Clear selections when switching modes
-                clear_selections_on_mode_change,
                 // Hover highlighting
                 update_hover_indicator,
                 update_hover_indicator_position,
-                // Mode 1: Click-based connection (existing)
-                handle_object_selection,
-                update_selection_indicators,
-                create_constraint_system,
-                handle_deleted_selections,
-                // Mode 2: Drag-based connection (new)
+                // Drag-based connection
                 start_drag_connection,
                 update_drag_connection,
                 end_drag_connection,

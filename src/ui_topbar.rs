@@ -2,12 +2,10 @@ use bevy::prelude::*;
 
 use crate::bomb::spawn_bomb_from_ui;
 use crate::combustion::spawn_fire_from_ui;
-use crate::connection::{ConstraintType, SelectionState, ConnectionMode, ConnectionModeState, ConnectionMaterial};
+use crate::connection::{ConstraintType, SelectionState, ConnectionMaterial};
 use crate::drag::DragState;
-use crate::iron_block::spawn_iron_block_from_ui;
 use crate::ragdoll::spawn_ragdoll_from_ui;
 use crate::utils::get_cursor_world_position;
-use crate::wooden_box::spawn_wooden_box_from_ui;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ObjectType {
@@ -47,7 +45,7 @@ pub struct ObjectButton {
 pub struct TopBarUI;
 
 #[derive(Component)]
-pub struct ConnectionModeButton;
+pub struct MaterialButton;
 
 pub fn setup_ui_topbar(mut commands: Commands) {
     commands
@@ -72,11 +70,6 @@ pub fn setup_ui_topbar(mut commands: Commands) {
             create_object_button(parent, ObjectType::Fire, "Fire (F)", false);
             create_object_button(parent, ObjectType::FixedConstraint, "Fixed (X)", false);
             create_object_button(parent, ObjectType::HingeConstraint, "Hinge (H)", false);
-            // Material buttons for connections
-            create_object_button(parent, ObjectType::MaterialWood, "Wood", false);
-            create_object_button(parent, ObjectType::MaterialMetal, "Metal", false);
-            create_object_button(parent, ObjectType::MaterialRope, "Rope", false);
-            create_object_button(parent, ObjectType::MaterialPlastic, "Plastic", false);
         });
 }
 
@@ -188,8 +181,7 @@ pub fn sync_selection_with_connection_system(
     mut commands: Commands,
     selected_object: Res<SelectedObject>,
     mut selection_state: ResMut<SelectionState>,
-    indicator_query: Query<Entity, With<crate::connection::SelectionIndicator>>,
-    button_query: Query<Entity, With<ConnectionModeButton>>,
+    material_button_query: Query<Entity, With<MaterialButton>>,
 ) {
     if selected_object.is_changed() {
         let was_enabled = selection_state.is_enabled;
@@ -222,106 +214,89 @@ pub fn sync_selection_with_connection_system(
                 return;
             }
             _ => {
-                // Clear selections when switching to non-constraint mode
-                if selection_state.is_enabled {
-                    for entity in indicator_query.iter() {
-                        commands.entity(entity).despawn();
-                    }
-                    selection_state.first_selected = None;
-                    selection_state.second_selected = None;
-                    selection_state.first_click_position = None;
-                    selection_state.second_click_position = None;
-                }
                 selection_state.is_enabled = false;
             }
         }
         
-        // Show/hide connection mode button based on whether connection mode is active
+        // Show/hide material buttons based on whether connection mode is active
         if !was_enabled && selection_state.is_enabled {
-            spawn_connection_mode_button(&mut commands);
+            spawn_material_buttons(&mut commands, selection_state.material);
         } else if was_enabled && !selection_state.is_enabled {
-            for entity in button_query.iter() {
+            for entity in material_button_query.iter() {
                 commands.entity(entity).despawn_recursive();
             }
         }
     }
 }
 
-fn spawn_connection_mode_button(commands: &mut Commands) {
+fn spawn_material_buttons(commands: &mut Commands, current_material: ConnectionMaterial) {
+    // Spawn a panel below the top bar with material selection buttons
     commands.spawn((
         Node {
             position_type: PositionType::Absolute,
             top: Val::Px(70.0),
             left: Val::Px(10.0),
-            width: Val::Px(180.0),
-            height: Val::Px(40.0),
+            width: Val::Px(520.0),
+            height: Val::Px(50.0),
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
+            column_gap: Val::Px(10.0),
+            padding: UiRect::all(Val::Px(5.0)),
             ..default()
         },
-        BackgroundColor(Color::srgba(0.2, 0.6, 0.3, 0.9)),
-        Button,
-        ConnectionModeButton,
+        BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.9)),
+        MaterialButton,
     ))
     .with_children(|parent| {
         parent.spawn((
-            Text::new("Mode: Drag"),
+            Text::new("Material:"),
             TextFont {
-                font_size: 16.0,
+                font_size: 14.0,
                 ..default()
             },
             TextColor(Color::srgb(0.9, 0.9, 0.9)),
         ));
+        
+        create_material_button(parent, ObjectType::MaterialWood, "Wood", current_material == ConnectionMaterial::Wood);
+        create_material_button(parent, ObjectType::MaterialMetal, "Metal", current_material == ConnectionMaterial::Metal);
+        create_material_button(parent, ObjectType::MaterialRope, "Rope", current_material == ConnectionMaterial::Rope);
+        create_material_button(parent, ObjectType::MaterialPlastic, "Plastic", current_material == ConnectionMaterial::Plastic);
     });
 }
 
-pub fn handle_connection_mode_button(
-    mut interaction_query: Query<
-        (&Interaction, &mut BackgroundColor),
-        (Changed<Interaction>, With<ConnectionModeButton>),
-    >,
-    mut text_query: Query<&mut Text>,
-    mut connection_mode: ResMut<ConnectionModeState>,
-    button_query: Query<&Children, With<ConnectionModeButton>>,
+fn create_material_button(
+    parent: &mut ChildBuilder,
+    object_type: ObjectType,
+    label: &str,
+    is_selected: bool,
 ) {
-    for (interaction, mut bg_color) in interaction_query.iter_mut() {
-        match *interaction {
-            Interaction::Pressed => {
-                // Toggle connection mode
-                connection_mode.mode = match connection_mode.mode {
-                    ConnectionMode::Click => ConnectionMode::Drag,
-                    ConnectionMode::Drag => ConnectionMode::Click,
-                };
-                
-                // Update button text
-                if let Ok(children) = button_query.get_single() {
-                    for &child in children.iter() {
-                        if let Ok(mut text) = text_query.get_mut(child) {
-                            *text = Text::new(match connection_mode.mode {
-                                ConnectionMode::Click => "Mode: Click",
-                                ConnectionMode::Drag => "Mode: Drag",
-                            });
-                        }
-                    }
-                }
-                
-                *bg_color = BackgroundColor(match connection_mode.mode {
-                    ConnectionMode::Click => Color::srgba(0.6, 0.4, 0.2, 0.9),
-                    ConnectionMode::Drag => Color::srgba(0.2, 0.6, 0.3, 0.9),
-                });
-            }
-            Interaction::Hovered => {
-                *bg_color = BackgroundColor(match connection_mode.mode {
-                    ConnectionMode::Click => Color::srgba(0.7, 0.5, 0.3, 0.9),
-                    ConnectionMode::Drag => Color::srgba(0.3, 0.7, 0.4, 0.9),
-                });
-            }
-            Interaction::None => {
-                *bg_color = BackgroundColor(match connection_mode.mode {
-                    ConnectionMode::Click => Color::srgba(0.6, 0.4, 0.2, 0.9),
-                    ConnectionMode::Drag => Color::srgba(0.2, 0.6, 0.3, 0.9),
-                });
-            }
-        }
-    }
+    let bg_color = if is_selected {
+        Color::srgb(0.3, 0.5, 0.7)
+    } else {
+        Color::srgb(0.25, 0.25, 0.25)
+    };
+
+    parent
+        .spawn((
+            Button,
+            Node {
+                width: Val::Px(100.0),
+                height: Val::Px(35.0),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            BackgroundColor(bg_color),
+            ObjectButton { object_type },
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                Text::new(label),
+                TextFont {
+                    font_size: 14.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.9, 0.9, 0.9)),
+            ));
+        });
 }
