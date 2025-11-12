@@ -89,6 +89,7 @@ pub fn handle_object_selection(
     indicator_query: Query<Entity, With<SelectionIndicator>>,
     drag_state: Res<crate::drag::DragState>,
     drag_conn_state: Res<DragConnectionState>,
+    rapier_context: Query<&RapierContext>,
 ) {
     if !selection_state.is_enabled {
         return;
@@ -104,38 +105,39 @@ pub fn handle_object_selection(
         return;
     }
 
+    let Ok(context) = rapier_context.get_single() else {
+        return;
+    };
+
     if mouse_button.just_pressed(MouseButton::Left) {
         if let Some(world_pos) = get_cursor_world_position(&windows, &camera_q) {
-            let mut closest_entity = None;
-            let mut closest_distance = f32::INFINITY;
-
-            for (entity, transform) in connectable_query.iter() {
-                let object_pos = transform.translation.truncate();
-                let distance = object_pos.distance(world_pos);
-
-                let max_radius = 50.0;
-
-                if distance < max_radius && distance < closest_distance {
-                    closest_distance = distance;
-                    closest_entity = Some(entity);
-                }
-            }
-
-            if let Some(entity) = closest_entity {
-                if selection_state.first_selected.is_none() {
-                    selection_state.first_selected = Some(entity);
-                    spawn_selection_indicator(&mut commands, entity, true);
-                } else if selection_state.first_selected == Some(entity) {
-                    clear_selection(&mut commands, &mut selection_state, &indicator_query);
-                } else if selection_state.second_selected.is_none() {
-                    if selection_state.first_selected != Some(entity) {
-                        selection_state.second_selected = Some(entity);
-                        spawn_selection_indicator(&mut commands, entity, false);
+            // Use raycast to detect the object under cursor
+            let filter = QueryFilter::default();
+            
+            if let Some((entity, _toi)) = context.cast_ray(
+                world_pos,
+                Vec2::new(0.0, -1.0),
+                0.1,
+                true,
+                filter,
+            ) {
+                // Check if the hit entity is connectable
+                if connectable_query.get(entity).is_ok() {
+                    if selection_state.first_selected.is_none() {
+                        selection_state.first_selected = Some(entity);
+                        spawn_selection_indicator(&mut commands, entity, true);
+                    } else if selection_state.first_selected == Some(entity) {
+                        clear_selection(&mut commands, &mut selection_state, &indicator_query);
+                    } else if selection_state.second_selected.is_none() {
+                        if selection_state.first_selected != Some(entity) {
+                            selection_state.second_selected = Some(entity);
+                            spawn_selection_indicator(&mut commands, entity, false);
+                        }
+                    } else {
+                        clear_selection(&mut commands, &mut selection_state, &indicator_query);
+                        selection_state.first_selected = Some(entity);
+                        spawn_selection_indicator(&mut commands, entity, true);
                     }
-                } else {
-                    clear_selection(&mut commands, &mut selection_state, &indicator_query);
-                    selection_state.first_selected = Some(entity);
-                    spawn_selection_indicator(&mut commands, entity, true);
                 }
             }
         }
@@ -302,6 +304,7 @@ pub fn update_hover_indicator(
     connectable_query: Query<(Entity, &Transform), With<Connectable>>,
     hover_query: Query<Entity, With<HoverIndicator>>,
     drag_conn_state: Res<DragConnectionState>,
+    rapier_context: Query<&RapierContext>,
 ) {
     // Only show hover indicator when in connect mode (Drag mode) and not currently dragging
     if !selection_state.is_enabled || connection_mode.mode != ConnectionMode::Drag || drag_conn_state.is_dragging {
@@ -312,19 +315,25 @@ pub fn update_hover_indicator(
         return;
     }
 
+    let Ok(context) = rapier_context.get_single() else {
+        return;
+    };
+
     if let Some(world_pos) = get_cursor_world_position(&windows, &camera_q) {
-        let mut closest_entity = None;
-        let mut closest_distance = f32::INFINITY;
-
-        for (entity, transform) in connectable_query.iter() {
-            let object_pos = transform.translation.truncate();
-            let distance = object_pos.distance(world_pos);
-
-            let max_radius = 50.0;
-
-            if distance < max_radius && distance < closest_distance {
-                closest_distance = distance;
-                closest_entity = Some(entity);
+        // Use raycast to detect the object under cursor
+        let filter = QueryFilter::default();
+        let mut hover_entity = None;
+        
+        if let Some((entity, _toi)) = context.cast_ray(
+            world_pos,
+            Vec2::new(0.0, -1.0),
+            0.1,
+            true,
+            filter,
+        ) {
+            // Check if the hit entity is connectable
+            if connectable_query.get(entity).is_ok() {
+                hover_entity = Some(entity);
             }
         }
 
@@ -334,7 +343,7 @@ pub fn update_hover_indicator(
         }
 
         // Spawn new hover indicator if hovering over an object
-        if let Some(entity) = closest_entity {
+        if let Some(entity) = hover_entity {
             spawn_hover_indicator(&mut commands, entity);
         }
     } else {
@@ -385,6 +394,7 @@ pub fn start_drag_connection(
     camera_q: Query<(&Camera, &GlobalTransform)>,
     connectable_query: Query<(Entity, &Transform), With<Connectable>>,
     drag_state: Res<crate::drag::DragState>,
+    rapier_context: Query<&RapierContext>,
 ) {
     // Only work when connection mode is enabled and in Drag mode
     if !selection_state.is_enabled {
@@ -400,31 +410,34 @@ pub fn start_drag_connection(
         return;
     }
 
+    let Ok(context) = rapier_context.get_single() else {
+        return;
+    };
+
     if mouse_button.just_pressed(MouseButton::Left) {
         if let Some(world_pos) = get_cursor_world_position(&windows, &camera_q) {
-            let mut closest_entity = None;
-            let mut closest_distance = f32::INFINITY;
+            // Use raycast to detect the object under cursor
+            let filter = QueryFilter::default();
+            
+            if let Some((entity, _toi)) = context.cast_ray(
+                world_pos,
+                Vec2::new(0.0, -1.0),
+                0.1,
+                true,
+                filter,
+            ) {
+                // Check if the hit entity is connectable
+                if let Ok((entity, transform)) = connectable_query.get(entity) {
+                    let pos = transform.translation.truncate();
+                    
+                    // Start dragging connection from this entity
+                    drag_conn_state.is_dragging = true;
+                    drag_conn_state.start_entity = Some(entity);
+                    drag_conn_state.start_position = pos;
 
-            for (entity, transform) in connectable_query.iter() {
-                let object_pos = transform.translation.truncate();
-                let distance = object_pos.distance(world_pos);
-
-                let max_radius = 50.0;
-
-                if distance < max_radius && distance < closest_distance {
-                    closest_distance = distance;
-                    closest_entity = Some((entity, object_pos));
+                    // Spawn visual line
+                    spawn_connection_drag_line(&mut commands);
                 }
-            }
-
-            if let Some((entity, pos)) = closest_entity {
-                // Start dragging connection from this entity
-                drag_conn_state.is_dragging = true;
-                drag_conn_state.start_entity = Some(entity);
-                drag_conn_state.start_position = pos;
-
-                // Spawn visual line
-                spawn_connection_drag_line(&mut commands);
             }
         }
     }
@@ -471,32 +484,34 @@ pub fn end_drag_connection(
     connectable_query: Query<(Entity, &Transform), With<Connectable>>,
     transform_query: Query<&Transform>,
     line_query: Query<Entity, With<ConnectionDragLine>>,
+    rapier_context: Query<&RapierContext>,
 ) {
     if !drag_conn_state.is_dragging {
         return;
     }
+
+    let Ok(context) = rapier_context.get_single() else {
+        return;
+    };
 
     if mouse_button.just_released(MouseButton::Left) {
         let mut connection_created = false;
 
         if let Some(start_entity) = drag_conn_state.start_entity {
             if let Some(cursor_pos) = get_cursor_world_position(&windows, &camera_q) {
-                // Find if cursor is over another connectable object
+                // Use raycast to detect the object under cursor
+                let filter = QueryFilter::default();
                 let mut target_entity = None;
-                let mut closest_distance = f32::INFINITY;
-
-                for (entity, transform) in connectable_query.iter() {
-                    if entity == start_entity {
-                        continue; // Skip the start entity
-                    }
-
-                    let object_pos = transform.translation.truncate();
-                    let distance = object_pos.distance(cursor_pos);
-
-                    let max_radius = 50.0;
-
-                    if distance < max_radius && distance < closest_distance {
-                        closest_distance = distance;
+                
+                if let Some((entity, _toi)) = context.cast_ray(
+                    cursor_pos,
+                    Vec2::new(0.0, -1.0),
+                    0.1,
+                    true,
+                    filter,
+                ) {
+                    // Check if the hit entity is connectable and not the start entity
+                    if entity != start_entity && connectable_query.get(entity).is_ok() {
                         target_entity = Some(entity);
                     }
                 }

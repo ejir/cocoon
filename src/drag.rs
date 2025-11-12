@@ -19,29 +19,39 @@ pub fn start_drag_system(
     windows: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
     draggable_query: Query<(Entity, &Transform, &RigidBody), With<Draggable>>,
+    rapier_context: Query<&RapierContext>,
+    selection_state: Res<crate::connection::SelectionState>,
 ) {
+    // Don't start drag if connection mode is enabled
+    if selection_state.is_enabled {
+        return;
+    }
+
+    let Ok(context) = rapier_context.get_single() else {
+        return;
+    };
+
     if mouse_button.just_pressed(MouseButton::Left) && drag_state.dragging_entity.is_none() {
         if let Some(world_pos) = get_cursor_world_position(&windows, &camera_q) {
-            let mut closest_entity = None;
-            let mut closest_distance = f32::INFINITY;
-
-            for (entity, transform, body) in draggable_query.iter() {
-                let object_pos = transform.translation.truncate();
-                let distance = object_pos.distance(world_pos);
-
-                let max_radius = 50.0;
-
-                if distance < max_radius && distance < closest_distance {
-                    closest_distance = distance;
-                    closest_entity = Some((entity, object_pos, *body));
+            // Use raycast to detect the object under cursor
+            let filter = QueryFilter::default();
+            
+            // Use point intersection to find entities at cursor position
+            if let Some((entity, _toi)) = context.cast_ray(
+                world_pos,
+                Vec2::new(0.0, -1.0), // Direction doesn't matter for point detection
+                0.1, // Very small distance, essentially a point query
+                true,
+                filter,
+            ) {
+                // Check if the hit entity is draggable
+                if let Ok((entity, transform, body)) = draggable_query.get(entity) {
+                    let object_pos = transform.translation.truncate();
+                    let offset = object_pos - world_pos;
+                    drag_state.dragging_entity = Some(entity);
+                    drag_state.original_body_type = Some(*body);
+                    drag_state.drag_offset = offset;
                 }
-            }
-
-            if let Some((entity, object_pos, body)) = closest_entity {
-                let offset = object_pos - world_pos;
-                drag_state.dragging_entity = Some(entity);
-                drag_state.original_body_type = Some(body);
-                drag_state.drag_offset = offset;
             }
         }
     }
