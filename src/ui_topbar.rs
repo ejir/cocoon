@@ -203,6 +203,8 @@ pub fn sync_selection_with_connection_system(
                     }
                     selection_state.first_selected = None;
                     selection_state.second_selected = None;
+                    selection_state.first_click_position = None;
+                    selection_state.second_click_position = None;
                 }
                 selection_state.is_enabled = false;
             }

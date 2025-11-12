@@ -33,6 +33,8 @@ impl Default for ConnectionModeState {
 pub struct SelectionState {
     pub first_selected: Option<Entity>,
     pub second_selected: Option<Entity>,
+    pub first_click_position: Option<Vec2>,
+    pub second_click_position: Option<Vec2>,
     pub constraint_type: ConstraintType,
     pub is_enabled: bool,
 }
@@ -42,6 +44,8 @@ impl Default for SelectionState {
         Self {
             first_selected: None,
             second_selected: None,
+            first_click_position: None,
+            second_click_position: None,
             constraint_type: ConstraintType::Fixed,
             is_enabled: false,
         }
@@ -125,17 +129,20 @@ pub fn handle_object_selection(
                 if connectable_query.get(entity).is_ok() {
                     if selection_state.first_selected.is_none() {
                         selection_state.first_selected = Some(entity);
+                        selection_state.first_click_position = Some(world_pos);
                         spawn_selection_indicator(&mut commands, entity, true);
                     } else if selection_state.first_selected == Some(entity) {
                         clear_selection(&mut commands, &mut selection_state, &indicator_query);
                     } else if selection_state.second_selected.is_none() {
                         if selection_state.first_selected != Some(entity) {
                             selection_state.second_selected = Some(entity);
+                            selection_state.second_click_position = Some(world_pos);
                             spawn_selection_indicator(&mut commands, entity, false);
                         }
                     } else {
                         clear_selection(&mut commands, &mut selection_state, &indicator_query);
                         selection_state.first_selected = Some(entity);
+                        selection_state.first_click_position = Some(world_pos);
                         spawn_selection_indicator(&mut commands, entity, true);
                     }
                 }
@@ -172,6 +179,8 @@ fn clear_selection(
 ) {
     selection_state.first_selected = None;
     selection_state.second_selected = None;
+    selection_state.first_click_position = None;
+    selection_state.second_click_position = None;
 
     for entity in indicator_query.iter() {
         commands.entity(entity).despawn();
@@ -208,7 +217,12 @@ pub fn create_constraint_system(
     }
 
     if keyboard.just_pressed(KeyCode::KeyC) || keyboard.just_pressed(KeyCode::Enter) {
-        if let (Some(first), Some(second)) = (selection_state.first_selected, selection_state.second_selected) {
+        if let (Some(first), Some(second), Some(first_click_pos), Some(second_click_pos)) = (
+            selection_state.first_selected,
+            selection_state.second_selected,
+            selection_state.first_click_position,
+            selection_state.second_click_position,
+        ) {
             if let (Ok(first_transform), Ok(second_transform)) = (
                 transform_query.get(first),
                 transform_query.get(second),
@@ -216,9 +230,8 @@ pub fn create_constraint_system(
                 let first_pos = first_transform.translation.truncate();
                 let second_pos = second_transform.translation.truncate();
 
-                let midpoint = (first_pos + second_pos) / 2.0;
-                let anchor1 = midpoint - first_pos;
-                let anchor2 = midpoint - second_pos;
+                let anchor1 = first_click_pos - first_pos;
+                let anchor2 = second_click_pos - second_pos;
 
                 match selection_state.constraint_type {
                     ConstraintType::Fixed => {
@@ -242,7 +255,7 @@ pub fn create_constraint_system(
                         ));
                     }
                     ConstraintType::Spring => {
-                        let rest_length = (first_pos - second_pos).length();
+                        let rest_length = (first_click_pos - second_click_pos).length();
                         let joint = SpringJointBuilder::new(rest_length, 100.0, 5.0)
                             .local_anchor1(anchor1)
                             .local_anchor2(anchor2);
@@ -260,6 +273,8 @@ pub fn create_constraint_system(
 
                 selection_state.first_selected = None;
                 selection_state.second_selected = None;
+                selection_state.first_click_position = None;
+                selection_state.second_click_position = None;
             }
         }
     }
@@ -428,12 +443,10 @@ pub fn start_drag_connection(
             ) {
                 // Check if the hit entity is connectable
                 if let Ok((entity, transform)) = connectable_query.get(entity) {
-                    let pos = transform.translation.truncate();
-                    
                     // Start dragging connection from this entity
                     drag_conn_state.is_dragging = true;
                     drag_conn_state.start_entity = Some(entity);
-                    drag_conn_state.start_position = pos;
+                    drag_conn_state.start_position = world_pos;
 
                     // Spawn visual line
                     spawn_connection_drag_line(&mut commands);
@@ -456,19 +469,17 @@ pub fn update_drag_connection(
     }
 
     if let Some(start_entity) = drag_conn_state.start_entity {
-        if let Ok(start_transform) = transform_query.get(start_entity) {
-            let start_pos = start_transform.translation.truncate();
+        let start_pos = drag_conn_state.start_position;
+        
+        if let Some(cursor_pos) = get_cursor_world_position(&windows, &camera_q) {
+            // Draw a line from start position to cursor
+            gizmos.line_2d(start_pos, cursor_pos, Color::srgb(0.2, 0.8, 0.2));
             
-            if let Some(cursor_pos) = get_cursor_world_position(&windows, &camera_q) {
-                // Draw a line from start entity to cursor
-                gizmos.line_2d(start_pos, cursor_pos, Color::srgb(0.2, 0.8, 0.2));
-                
-                // Draw a circle at the start point
-                gizmos.circle_2d(start_pos, 8.0, Color::srgb(0.0, 1.0, 0.0));
-                
-                // Draw a circle at the cursor
-                gizmos.circle_2d(cursor_pos, 8.0, Color::srgb(0.2, 0.8, 0.2));
-            }
+            // Draw a circle at the start point
+            gizmos.circle_2d(start_pos, 8.0, Color::srgb(0.0, 1.0, 0.0));
+            
+            // Draw a circle at the cursor
+            gizmos.circle_2d(cursor_pos, 8.0, Color::srgb(0.2, 0.8, 0.2));
         }
     }
 }
@@ -522,12 +533,14 @@ pub fn end_drag_connection(
                         transform_query.get(start_entity),
                         transform_query.get(end_entity),
                     ) {
-                        let start_pos = start_transform.translation.truncate();
-                        let end_pos = end_transform.translation.truncate();
+                        let start_body_pos = start_transform.translation.truncate();
+                        let end_body_pos = end_transform.translation.truncate();
 
-                        let midpoint = (start_pos + end_pos) / 2.0;
-                        let anchor1 = midpoint - start_pos;
-                        let anchor2 = midpoint - end_pos;
+                        let start_click_pos = drag_conn_state.start_position;
+                        let end_click_pos = cursor_pos;
+
+                        let anchor1 = start_click_pos - start_body_pos;
+                        let anchor2 = end_click_pos - end_body_pos;
 
                         match selection_state.constraint_type {
                             ConstraintType::Fixed => {
@@ -551,7 +564,7 @@ pub fn end_drag_connection(
                                 ));
                             }
                             ConstraintType::Spring => {
-                                let rest_length = (start_pos - end_pos).length();
+                                let rest_length = (start_click_pos - end_click_pos).length();
                                 let joint = SpringJointBuilder::new(rest_length, 100.0, 5.0)
                                     .local_anchor1(anchor1)
                                     .local_anchor2(anchor2);
@@ -600,5 +613,7 @@ pub fn clear_selections_on_mode_change(
         }
         selection_state.first_selected = None;
         selection_state.second_selected = None;
+        selection_state.first_click_position = None;
+        selection_state.second_click_position = None;
     }
 }
