@@ -46,31 +46,10 @@ pub enum ConstraintType {
     Hinge,  // Rotatable, like a bearing
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum ConnectionMode {
-    Click,  // Mode 1: Click first, click second, press C to connect
-    Drag,   // Mode 2: Drag from first to second to connect
-}
-
-#[derive(Resource)]
-pub struct ConnectionModeState {
-    pub mode: ConnectionMode,
-}
-
-impl Default for ConnectionModeState {
-    fn default() -> Self {
-        Self {
-            mode: ConnectionMode::Drag,
-        }
-    }
-}
+// Connection mode removed - only drag mode is supported now
 
 #[derive(Resource)]
 pub struct SelectionState {
-    pub first_selected: Option<Entity>,
-    pub second_selected: Option<Entity>,
-    pub first_click_position: Option<Vec2>,
-    pub second_click_position: Option<Vec2>,
     pub constraint_type: ConstraintType,
     pub material: ConnectionMaterial,
     pub is_enabled: bool,
@@ -79,10 +58,6 @@ pub struct SelectionState {
 impl Default for SelectionState {
     fn default() -> Self {
         Self {
-            first_selected: None,
-            second_selected: None,
-            first_click_position: None,
-            second_click_position: None,
             constraint_type: ConstraintType::Fixed,
             material: ConnectionMaterial::Metal,
             is_enabled: false,
@@ -90,7 +65,7 @@ impl Default for SelectionState {
     }
 }
 
-/// Resource to track drag-based connection state (Mode 2)
+/// Resource to track drag-based connection state
 #[derive(Resource, Default)]
 pub struct DragConnectionState {
     pub is_dragging: bool,
@@ -101,12 +76,6 @@ pub struct DragConnectionState {
 /// Component for the visual line showing the connection being dragged
 #[derive(Component)]
 pub struct ConnectionDragLine;
-
-#[derive(Component)]
-pub struct SelectionIndicator {
-    pub target_entity: Entity,
-    pub is_first: bool,
-}
 
 /// Component for the hover indicator that shows when mouse is over a connectable object
 #[derive(Component)]
@@ -124,233 +93,16 @@ pub struct UserCreatedJoint;
 #[derive(Component, Clone, Copy)]
 pub struct JointMaterial(pub ConnectionMaterial);
 
-pub fn handle_object_selection(
-    mut commands: Commands,
-    mut selection_state: ResMut<SelectionState>,
-    connection_mode: Res<ConnectionModeState>,
-    mouse_button: Res<ButtonInput<MouseButton>>,
-    windows: Query<&Window>,
-    camera_q: Query<(&Camera, &GlobalTransform)>,
-    connectable_query: Query<(Entity, &Transform), With<Connectable>>,
-    indicator_query: Query<Entity, With<SelectionIndicator>>,
-    drag_state: Res<crate::drag::DragState>,
-    drag_conn_state: Res<DragConnectionState>,
-    rapier_context: Query<&RapierContext>,
-) {
-    if !selection_state.is_enabled {
-        return;
-    }
+// Click mode removed - only drag mode is supported
 
-    // Only handle selection in Click mode
-    if connection_mode.mode != ConnectionMode::Click {
-        return;
-    }
+// create_constraint_system removed - only drag mode is supported
 
-    // Don't handle selection if dragging or drag-connecting
-    if drag_state.dragging_entity.is_some() || drag_conn_state.is_dragging {
-        return;
-    }
-
-    let Ok(context) = rapier_context.get_single() else {
-        return;
-    };
-
-    if mouse_button.just_pressed(MouseButton::Left) {
-        if let Some(world_pos) = get_cursor_world_position(&windows, &camera_q) {
-            // Use raycast to detect the object under cursor
-            let filter = QueryFilter::default();
-            
-            if let Some((entity, _toi)) = context.cast_ray(
-                world_pos,
-                Vec2::new(0.0, -1.0),
-                0.1,
-                true,
-                filter,
-            ) {
-                // Check if the hit entity is connectable
-                if connectable_query.get(entity).is_ok() {
-                    if selection_state.first_selected.is_none() {
-                        selection_state.first_selected = Some(entity);
-                        selection_state.first_click_position = Some(world_pos);
-                        spawn_selection_indicator(&mut commands, entity, true);
-                    } else if selection_state.first_selected == Some(entity) {
-                        clear_selection(&mut commands, &mut selection_state, &indicator_query);
-                    } else if selection_state.second_selected.is_none() {
-                        if selection_state.first_selected != Some(entity) {
-                            selection_state.second_selected = Some(entity);
-                            selection_state.second_click_position = Some(world_pos);
-                            spawn_selection_indicator(&mut commands, entity, false);
-                        }
-                    } else {
-                        clear_selection(&mut commands, &mut selection_state, &indicator_query);
-                        selection_state.first_selected = Some(entity);
-                        selection_state.first_click_position = Some(world_pos);
-                        spawn_selection_indicator(&mut commands, entity, true);
-                    }
-                }
-            }
-        }
-    }
-}
-
-fn spawn_selection_indicator(commands: &mut Commands, target_entity: Entity, is_first: bool) {
-    let color = if is_first {
-        Color::srgba(0.0, 1.0, 0.0, 0.6)
-    } else {
-        Color::srgba(0.0, 0.5, 1.0, 0.6)
-    };
-
-    commands.spawn((
-        Sprite {
-            color,
-            custom_size: Some(Vec2::new(60.0, 60.0)),
-            ..default()
-        },
-        Transform::from_xyz(0.0, 0.0, 1.0),
-        SelectionIndicator {
-            target_entity,
-            is_first,
-        },
-    ));
-}
-
-fn clear_selection(
-    commands: &mut Commands,
-    selection_state: &mut SelectionState,
-    indicator_query: &Query<Entity, With<SelectionIndicator>>,
-) {
-    selection_state.first_selected = None;
-    selection_state.second_selected = None;
-    selection_state.first_click_position = None;
-    selection_state.second_click_position = None;
-
-    for entity in indicator_query.iter() {
-        commands.entity(entity).despawn();
-    }
-}
-
-pub fn update_selection_indicators(
-    mut indicator_query: Query<(&mut Transform, &SelectionIndicator)>,
-    transform_query: Query<&Transform, Without<SelectionIndicator>>,
-) {
-    for (mut indicator_transform, indicator) in indicator_query.iter_mut() {
-        if let Ok(target_transform) = transform_query.get(indicator.target_entity) {
-            indicator_transform.translation = target_transform.translation + Vec3::new(0.0, 0.0, 1.0);
-            indicator_transform.rotation = target_transform.rotation;
-        }
-    }
-}
-
-pub fn create_constraint_system(
-    mut commands: Commands,
-    mut selection_state: ResMut<SelectionState>,
-    connection_mode: Res<ConnectionModeState>,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    indicator_query: Query<Entity, With<SelectionIndicator>>,
-    transform_query: Query<&Transform>,
-) {
-    if !selection_state.is_enabled {
-        return;
-    }
-
-    // Only work in Click mode
-    if connection_mode.mode != ConnectionMode::Click {
-        return;
-    }
-
-    if keyboard.just_pressed(KeyCode::KeyC) || keyboard.just_pressed(KeyCode::Enter) {
-        if let (Some(first), Some(second), Some(first_click_pos), Some(second_click_pos)) = (
-            selection_state.first_selected,
-            selection_state.second_selected,
-            selection_state.first_click_position,
-            selection_state.second_click_position,
-        ) {
-            if let (Ok(first_transform), Ok(second_transform)) = (
-                transform_query.get(first),
-                transform_query.get(second),
-            ) {
-                let first_pos = first_transform.translation.truncate();
-                let second_pos = second_transform.translation.truncate();
-
-                let anchor1 = first_click_pos - first_pos;
-                let anchor2 = second_click_pos - second_pos;
-
-                let material = selection_state.material;
-                let compliance = material.compliance();
-                let damping = material.damping();
-
-                match selection_state.constraint_type {
-                    ConstraintType::Fixed => {
-                        let joint = FixedJointBuilder::new()
-                            .local_anchor1(anchor1)
-                            .local_anchor2(anchor2);
-
-                        commands.entity(second).insert((
-                            ImpulseJoint::new(first, joint),
-                            UserCreatedJoint,
-                            JointMaterial(material),
-                        ));
-                    }
-                    ConstraintType::Hinge => {
-                        let joint = RevoluteJointBuilder::new()
-                            .local_anchor1(anchor1)
-                            .local_anchor2(anchor2);
-
-                        commands.entity(second).insert((
-                            ImpulseJoint::new(first, joint),
-                            UserCreatedJoint,
-                            JointMaterial(material),
-                        ));
-                    }
-                }
-
-                for entity in indicator_query.iter() {
-                    commands.entity(entity).despawn();
-                }
-
-                selection_state.first_selected = None;
-                selection_state.second_selected = None;
-                selection_state.first_click_position = None;
-                selection_state.second_click_position = None;
-            }
-        }
-    }
-
-    if keyboard.just_pressed(KeyCode::Escape) {
-        clear_selection(&mut commands, &mut selection_state, &indicator_query);
-    }
-}
-
-pub fn handle_deleted_selections(
-    mut commands: Commands,
-    mut selection_state: ResMut<SelectionState>,
-    query: Query<Entity, With<Connectable>>,
-    indicator_query: Query<Entity, With<SelectionIndicator>>,
-) {
-    let mut should_clear = false;
-
-    if let Some(first) = selection_state.first_selected {
-        if query.get(first).is_err() {
-            should_clear = true;
-        }
-    }
-
-    if let Some(second) = selection_state.second_selected {
-        if query.get(second).is_err() {
-            should_clear = true;
-        }
-    }
-
-    if should_clear {
-        clear_selection(&mut commands, &mut selection_state, &indicator_query);
-    }
-}
+// handle_deleted_selections removed - not needed for drag mode
 
 /// Update hover indicator to highlight connectable objects under cursor
 pub fn update_hover_indicator(
     mut commands: Commands,
     selection_state: Res<SelectionState>,
-    connection_mode: Res<ConnectionModeState>,
     windows: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
     connectable_query: Query<(Entity, &Transform), With<Connectable>>,
@@ -358,8 +110,8 @@ pub fn update_hover_indicator(
     drag_conn_state: Res<DragConnectionState>,
     rapier_context: Query<&RapierContext>,
 ) {
-    // Only show hover indicator when in connect mode (Drag mode) and not currently dragging
-    if !selection_state.is_enabled || connection_mode.mode != ConnectionMode::Drag || drag_conn_state.is_dragging {
+    // Only show hover indicator when in connect mode and not currently dragging
+    if !selection_state.is_enabled || drag_conn_state.is_dragging {
         // Remove any existing hover indicators
         for entity in hover_query.iter() {
             commands.entity(entity).despawn();
@@ -433,14 +185,13 @@ pub fn update_hover_indicator_position(
     }
 }
 
-// ========== Mode 2: Drag-based Connection Systems ==========
+// ========== Drag-based Connection Systems ==========
 
-/// Start dragging a connection from a connectable object (Mode 2)
+/// Start dragging a connection from a connectable object
 pub fn start_drag_connection(
     mut commands: Commands,
     mut drag_conn_state: ResMut<DragConnectionState>,
     selection_state: Res<SelectionState>,
-    connection_mode: Res<ConnectionModeState>,
     mouse_button: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
@@ -448,12 +199,8 @@ pub fn start_drag_connection(
     drag_state: Res<crate::drag::DragState>,
     rapier_context: Query<&RapierContext>,
 ) {
-    // Only work when connection mode is enabled and in Drag mode
+    // Only work when connection mode is enabled
     if !selection_state.is_enabled {
-        return;
-    }
-
-    if connection_mode.mode != ConnectionMode::Drag {
         return;
     }
 
@@ -493,7 +240,7 @@ pub fn start_drag_connection(
     }
 }
 
-/// Update the visual line while dragging connection (Mode 2)
+/// Update the visual line while dragging connection
 pub fn update_drag_connection(
     drag_conn_state: Res<DragConnectionState>,
     windows: Query<&Window>,
@@ -520,7 +267,7 @@ pub fn update_drag_connection(
     }
 }
 
-/// End drag connection and create constraint if over another object (Mode 2)
+/// End drag connection and create constraint if over another object
 pub fn end_drag_connection(
     mut commands: Commands,
     mut drag_conn_state: ResMut<DragConnectionState>,
@@ -542,8 +289,6 @@ pub fn end_drag_connection(
     };
 
     if mouse_button.just_released(MouseButton::Left) {
-        let mut connection_created = false;
-
         if let Some(start_entity) = drag_conn_state.start_entity {
             if let Some(cursor_pos) = get_cursor_world_position(&windows, &camera_q) {
                 // Use raycast to detect the object under cursor
@@ -579,8 +324,6 @@ pub fn end_drag_connection(
                         let anchor2 = end_click_pos - end_body_pos;
 
                         let material = selection_state.material;
-                        let compliance = material.compliance();
-                        let damping = material.damping();
 
                         match selection_state.constraint_type {
                             ConstraintType::Fixed => {
@@ -606,8 +349,6 @@ pub fn end_drag_connection(
                                 ));
                             }
                         }
-
-                        connection_created = true;
                     }
                 }
             }
@@ -630,21 +371,4 @@ fn spawn_connection_drag_line(commands: &mut Commands) {
     commands.spawn(ConnectionDragLine);
 }
 
-/// Clear selections when switching between connection modes
-pub fn clear_selections_on_mode_change(
-    mut commands: Commands,
-    mut selection_state: ResMut<SelectionState>,
-    connection_mode: Res<ConnectionModeState>,
-    indicator_query: Query<Entity, With<SelectionIndicator>>,
-) {
-    if connection_mode.is_changed() {
-        // Clear click-mode selections when switching modes
-        for entity in indicator_query.iter() {
-            commands.entity(entity).despawn();
-        }
-        selection_state.first_selected = None;
-        selection_state.second_selected = None;
-        selection_state.first_click_position = None;
-        selection_state.second_click_position = None;
-    }
-}
+// clear_selections_on_mode_change removed - only one mode now
