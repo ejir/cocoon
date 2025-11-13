@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
 use crate::utils::get_cursor_world_position;
+use crate::components::Health;
 
 /// Material type for connections, affecting joint strength and behavior
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -120,6 +121,12 @@ pub struct ConnectionVisual {
     pub entity2: Entity,
     pub anchor1: Vec2,
     pub anchor2: Vec2,
+    pub material: ConnectionMaterial,
+}
+
+/// Component to mark a physical connector object (the material between two connected objects)
+#[derive(Component)]
+pub struct ConnectorMaterial {
     pub material: ConnectionMaterial,
 }
 
@@ -350,40 +357,82 @@ pub fn end_drag_connection(
                         let start_click_pos = drag_conn_state.start_position;
                         let end_click_pos = cursor_pos;
 
-                        let anchor1 = start_click_pos - start_body_pos;
-                        let anchor2 = end_click_pos - end_body_pos;
-
                         let material = selection_state.material;
+
+                        // Create physical connector material between the two points
+                        let connector_entity = create_connector_material(
+                            &mut commands,
+                            start_click_pos,
+                            end_click_pos,
+                            material,
+                        );
+
+                        // Calculate connector position (midpoint)
+                        let connector_pos = (start_click_pos + end_click_pos) / 2.0;
+                        
+                        // Calculate direction and rotation for local anchor calculation
+                        let direction = end_click_pos - start_click_pos;
+                        let distance = direction.length();
+                        let angle = direction.y.atan2(direction.x);
+                        let rotation = Quat::from_rotation_z(angle);
+                        
+                        // Calculate anchors in the connector's local space (rotated coordinate system)
+                        // The connector is oriented along its length, so anchors are along its local x-axis
+                        let anchor_on_connector_start = Vec2::new(-distance / 2.0, 0.0);
+                        let anchor_on_connector_end = Vec2::new(distance / 2.0, 0.0);
+                        
+                        // Calculate anchors on the connected objects
+                        let anchor_on_start = start_click_pos - start_body_pos;
+                        let anchor_on_end = end_click_pos - end_body_pos;
 
                         match selection_state.constraint_type {
                             ConstraintType::Fixed => {
-                                // Create fixed joint with proper anchor points
-                                let joint = FixedJointBuilder::new()
-                                    .local_anchor1(anchor1)
-                                    .local_anchor2(anchor2);
+                                // Connect start object to connector
+                                let joint1 = FixedJointBuilder::new()
+                                    .local_anchor1(anchor_on_start)
+                                    .local_anchor2(anchor_on_connector_start);
+
+                                commands.entity(connector_entity).insert((
+                                    ImpulseJoint::new(start_entity, joint1),
+                                    UserCreatedJoint,
+                                    JointMaterial(material),
+                                ));
+
+                                // Connect end object to connector
+                                let joint2 = FixedJointBuilder::new()
+                                    .local_anchor1(anchor_on_end)
+                                    .local_anchor2(anchor_on_connector_end);
 
                                 commands.entity(end_entity).insert((
-                                    ImpulseJoint::new(start_entity, joint),
+                                    ImpulseJoint::new(connector_entity, joint2),
                                     UserCreatedJoint,
                                     JointMaterial(material),
                                 ));
                             }
                             ConstraintType::Hinge => {
-                                // Create revolute joint with proper anchor points
-                                let joint = RevoluteJointBuilder::new()
-                                    .local_anchor1(anchor1)
-                                    .local_anchor2(anchor2);
+                                // Connect start object to connector with hinge
+                                let joint1 = RevoluteJointBuilder::new()
+                                    .local_anchor1(anchor_on_start)
+                                    .local_anchor2(anchor_on_connector_start);
+
+                                commands.entity(connector_entity).insert((
+                                    ImpulseJoint::new(start_entity, joint1),
+                                    UserCreatedJoint,
+                                    JointMaterial(material),
+                                ));
+
+                                // Connect end object to connector with hinge
+                                let joint2 = RevoluteJointBuilder::new()
+                                    .local_anchor1(anchor_on_end)
+                                    .local_anchor2(anchor_on_connector_end);
 
                                 commands.entity(end_entity).insert((
-                                    ImpulseJoint::new(start_entity, joint),
+                                    ImpulseJoint::new(connector_entity, joint2),
                                     UserCreatedJoint,
                                     JointMaterial(material),
                                 ));
                             }
                         }
-                        
-                        // Spawn visual representation of the connection
-                        spawn_connection_visual(&mut commands, start_entity, end_entity, anchor1, anchor2, material);
                     }
                 }
             }
@@ -406,78 +455,58 @@ fn spawn_connection_drag_line(commands: &mut Commands) {
     commands.spawn(ConnectionDragLine);
 }
 
-/// Spawn a visual representation of a connection
-fn spawn_connection_visual(
+/// Create a physical connector material between two points
+fn create_connector_material(
     commands: &mut Commands,
-    entity1: Entity,
-    entity2: Entity,
-    anchor1: Vec2,
-    anchor2: Vec2,
+    start_pos: Vec2,
+    end_pos: Vec2,
     material: ConnectionMaterial,
-) {
-    commands.spawn((
-        ConnectionVisual {
-            entity1,
-            entity2,
-            anchor1,
-            anchor2,
-            material,
+) -> Entity {
+    let direction = end_pos - start_pos;
+    let distance = direction.length();
+    let midpoint = (start_pos + end_pos) / 2.0;
+    let angle = direction.y.atan2(direction.x);
+    
+    // Material properties
+    let (width, density, health_multiplier) = match material {
+        ConnectionMaterial::Wood => (6.0, 0.6, 1.0),
+        ConnectionMaterial::Metal => (4.0, 7.8, 2.0),
+        ConnectionMaterial::Rope => (3.0, 0.3, 0.5),
+        ConnectionMaterial::Plastic => (5.0, 0.9, 1.5),
+    };
+    
+    let health = (distance / 10.0) * health_multiplier * 20.0; // Scale health with length
+    
+    // Create the connector as a thin rectangle
+    let connector = commands.spawn((
+        Sprite {
+            color: material.color(),
+            custom_size: Some(Vec2::new(distance, width)),
+            ..default()
         },
-        Transform::default(),
-        Visibility::default(),
-    ));
+        Transform::from_translation(Vec3::new(midpoint.x, midpoint.y, -0.1))
+            .with_rotation(Quat::from_rotation_z(angle)),
+        RigidBody::Dynamic,
+        Collider::cuboid(distance / 2.0, width / 2.0),
+        ColliderMassProperties::Density(density),
+        Restitution::coefficient(0.3),
+        Friction::coefficient(0.5),
+        Damping {
+            linear_damping: 0.5,
+            angular_damping: 1.0,
+        },
+        Health {
+            current: health,
+            max: health,
+        },
+        ConnectorMaterial { material },
+        Connectable, // Allow connecting to connectors
+    )).id();
+    
+    connector
 }
 
-/// Update visual representation of connections
-pub fn update_connection_visuals(
-    visual_query: Query<&ConnectionVisual>,
-    transform_query: Query<&Transform>,
-    mut gizmos: Gizmos,
-) {
-    for visual in visual_query.iter() {
-        if let (Ok(transform1), Ok(transform2)) = (
-            transform_query.get(visual.entity1),
-            transform_query.get(visual.entity2),
-        ) {
-            // Calculate world positions of anchors
-            let pos1 = transform1.translation.truncate();
-            let rot1 = transform1.rotation.to_euler(EulerRot::ZYX).0;
-            let anchor1_world = pos1 + Vec2::new(
-                visual.anchor1.x * rot1.cos() - visual.anchor1.y * rot1.sin(),
-                visual.anchor1.x * rot1.sin() + visual.anchor1.y * rot1.cos(),
-            );
-
-            let pos2 = transform2.translation.truncate();
-            let rot2 = transform2.rotation.to_euler(EulerRot::ZYX).0;
-            let anchor2_world = pos2 + Vec2::new(
-                visual.anchor2.x * rot2.cos() - visual.anchor2.y * rot2.sin(),
-                visual.anchor2.x * rot2.sin() + visual.anchor2.y * rot2.cos(),
-            );
-
-            // Draw the connection line
-            gizmos.line_2d(anchor1_world, anchor2_world, visual.material.color());
-            
-            // Draw small circles at anchor points
-            let thickness = visual.material.thickness();
-            gizmos.circle_2d(anchor1_world, thickness, visual.material.color());
-            gizmos.circle_2d(anchor2_world, thickness, visual.material.color());
-        }
-    }
-}
-
-/// Clean up visual representations when joints are removed
-pub fn cleanup_orphaned_visuals(
-    mut commands: Commands,
-    visual_query: Query<(Entity, &ConnectionVisual)>,
-    entity_query: Query<Entity>,
-) {
-    for (visual_entity, visual) in visual_query.iter() {
-        // Check if either connected entity no longer exists
-        if entity_query.get(visual.entity1).is_err() || entity_query.get(visual.entity2).is_err() {
-            commands.entity(visual_entity).despawn();
-        }
-    }
-}
+// Visual connection system removed - physical connector materials are used instead
 
 /// Apply stabilizing damping to connected bodies to prevent shaking
 pub fn apply_material_properties_to_joints(
