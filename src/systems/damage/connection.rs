@@ -370,14 +370,28 @@ pub fn end_drag_connection(
                         let end_rotation = end_global_transform.to_scale_rotation_translation().1;
                         
                         // Convert world offset to local offset by applying inverse rotation
+                        // For 2D physics, we extract the Z-axis rotation angle and use 2D rotation
                         let start_world_offset = start_click_pos - start_body_pos;
                         let end_world_offset = end_click_pos - end_body_pos;
                         
-                        let anchor_on_start = start_rotation.inverse() * start_world_offset.extend(0.0);
-                        let anchor_on_end = end_rotation.inverse() * end_world_offset.extend(0.0);
+                        // Extract 2D rotation angles (rotation around Z-axis in 2D)
+                        let start_angle = start_rotation.to_euler(bevy::math::EulerRot::XYZ).2;
+                        let end_angle = end_rotation.to_euler(bevy::math::EulerRot::XYZ).2;
                         
-                        let anchor_on_start = anchor_on_start.truncate();
-                        let anchor_on_end = anchor_on_end.truncate();
+                        // Apply inverse 2D rotation to transform world offsets to local space
+                        let cos_start = (-start_angle).cos();
+                        let sin_start = (-start_angle).sin();
+                        let anchor_on_start = Vec2::new(
+                            start_world_offset.x * cos_start - start_world_offset.y * sin_start,
+                            start_world_offset.x * sin_start + start_world_offset.y * cos_start,
+                        );
+                        
+                        let cos_end = (-end_angle).cos();
+                        let sin_end = (-end_angle).sin();
+                        let anchor_on_end = Vec2::new(
+                            end_world_offset.x * cos_end - end_world_offset.y * sin_end,
+                            end_world_offset.x * sin_end + end_world_offset.y * cos_end,
+                        );
 
                         let break_force = material.break_force();
                         let connection_kind = match selection_state.constraint_type {
@@ -482,8 +496,28 @@ pub fn update_connection_visuals(
             let (_, rotation1, translation1) = global_transform1.to_scale_rotation_translation();
             let (_, rotation2, translation2) = global_transform2.to_scale_rotation_translation();
             
-            let start_pos = translation1.truncate() + (rotation1 * visual.anchor1.extend(0.0)).truncate();
-            let end_pos = translation2.truncate() + (rotation2 * visual.anchor2.extend(0.0)).truncate();
+            // Transform local anchors to world space using 2D rotation
+            // Extract 2D rotation angles (rotation around Z-axis in 2D)
+            let angle1 = rotation1.to_euler(bevy::math::EulerRot::XYZ).2;
+            let angle2 = rotation2.to_euler(bevy::math::EulerRot::XYZ).2;
+            
+            // Apply 2D rotation to transform local anchors to world space
+            let cos1 = angle1.cos();
+            let sin1 = angle1.sin();
+            let world_anchor1 = Vec2::new(
+                visual.anchor1.x * cos1 - visual.anchor1.y * sin1,
+                visual.anchor1.x * sin1 + visual.anchor1.y * cos1,
+            );
+            
+            let cos2 = angle2.cos();
+            let sin2 = angle2.sin();
+            let world_anchor2 = Vec2::new(
+                visual.anchor2.x * cos2 - visual.anchor2.y * sin2,
+                visual.anchor2.x * sin2 + visual.anchor2.y * cos2,
+            );
+            
+            let start_pos = translation1.truncate() + world_anchor1;
+            let end_pos = translation2.truncate() + world_anchor2;
             
             gizmos.line_2d(start_pos, end_pos, visual.material.color());
         }
