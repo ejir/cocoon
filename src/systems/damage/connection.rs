@@ -317,7 +317,7 @@ pub fn end_drag_connection(
     windows: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
     connectable_query: Query<(Entity, &Transform), With<Connectable>>,
-    transform_query: Query<&Transform>,
+    global_transform_query: Query<&GlobalTransform>,
     line_query: Query<Entity, With<ConnectionDragLine>>,
     rapier_context: Query<&RapierContext>,
 ) {
@@ -351,21 +351,33 @@ pub fn end_drag_connection(
 
                 // If we found a target, create the connection
                 if let Some(end_entity) = target_entity {
-                    if let (Ok(start_transform), Ok(end_transform)) = (
-                        transform_query.get(start_entity),
-                        transform_query.get(end_entity),
+                    if let (Ok(start_global_transform), Ok(end_global_transform)) = (
+                        global_transform_query.get(start_entity),
+                        global_transform_query.get(end_entity),
                     ) {
-                        let start_body_pos = start_transform.translation.truncate();
-                        let end_body_pos = end_transform.translation.truncate();
+                        let start_body_pos = start_global_transform.translation().truncate();
+                        let end_body_pos = end_global_transform.translation().truncate();
 
                         let start_click_pos = drag_conn_state.start_position;
                         let end_click_pos = cursor_pos;
 
                         let material = selection_state.material;
 
-                        // Calculate anchors on the connected objects
-                        let anchor_on_start = start_click_pos - start_body_pos;
-                        let anchor_on_end = end_click_pos - end_body_pos;
+                        // Calculate anchors on the connected objects in local space
+                        // We need to transform world-space click positions into local space
+                        // by applying the inverse rotation of each body
+                        let start_rotation = start_global_transform.to_scale_rotation_translation().1;
+                        let end_rotation = end_global_transform.to_scale_rotation_translation().1;
+                        
+                        // Convert world offset to local offset by applying inverse rotation
+                        let start_world_offset = start_click_pos - start_body_pos;
+                        let end_world_offset = end_click_pos - end_body_pos;
+                        
+                        let anchor_on_start = start_rotation.inverse() * start_world_offset.extend(0.0);
+                        let anchor_on_end = end_rotation.inverse() * end_world_offset.extend(0.0);
+                        
+                        let anchor_on_start = anchor_on_start.truncate();
+                        let anchor_on_end = anchor_on_end.truncate();
 
                         let break_force = material.break_force();
                         let connection_kind = match selection_state.constraint_type {
@@ -460,15 +472,18 @@ pub fn handle_despawned_connected_entities(
 pub fn update_connection_visuals(
     mut gizmos: Gizmos,
     visual_query: Query<&ConnectionVisual>,
-    transform_query: Query<&Transform>,
+    global_transform_query: Query<&GlobalTransform>,
 ) {
     for visual in visual_query.iter() {
-        if let (Ok(transform1), Ok(transform2)) = (
-            transform_query.get(visual.entity1),
-            transform_query.get(visual.entity2),
+        if let (Ok(global_transform1), Ok(global_transform2)) = (
+            global_transform_query.get(visual.entity1),
+            global_transform_query.get(visual.entity2),
         ) {
-            let start_pos = transform1.translation.truncate() + (transform1.rotation * visual.anchor1.extend(0.0)).truncate();
-            let end_pos = transform2.translation.truncate() + (transform2.rotation * visual.anchor2.extend(0.0)).truncate();
+            let (_, rotation1, translation1) = global_transform1.to_scale_rotation_translation();
+            let (_, rotation2, translation2) = global_transform2.to_scale_rotation_translation();
+            
+            let start_pos = translation1.truncate() + (rotation1 * visual.anchor1.extend(0.0)).truncate();
+            let end_pos = translation2.truncate() + (rotation2 * visual.anchor2.extend(0.0)).truncate();
             
             gizmos.line_2d(start_pos, end_pos, visual.material.color());
         }
