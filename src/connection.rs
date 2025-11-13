@@ -149,7 +149,7 @@ pub fn update_hover_indicator(
     connectable_query: Query<(Entity, &Transform), With<Connectable>>,
     hover_query: Query<Entity, With<HoverIndicator>>,
     drag_conn_state: Res<DragConnectionState>,
-    rapier_context: Res<RapierContext>,
+    rapier_context: Query<&RapierContext>,
 ) {
     // Only show hover indicator when in connect mode and not currently dragging
     if !selection_state.is_enabled || drag_conn_state.is_dragging {
@@ -160,12 +160,16 @@ pub fn update_hover_indicator(
         return;
     }
 
+    let Ok(context) = rapier_context.get_single() else {
+        return;
+    };
+
     if let Some(world_pos) = get_cursor_world_position(&windows, &camera_q) {
         // Use raycast to detect the object under cursor
         let filter = QueryFilter::default();
         let mut hover_entity = None;
         
-        if let Some((entity, _toi)) = rapier_context.cast_ray(
+        if let Some((entity, _toi)) = context.cast_ray(
             world_pos,
             Vec2::new(0.0, -1.0),
             0.1,
@@ -234,7 +238,7 @@ pub fn start_drag_connection(
     camera_q: Query<(&Camera, &GlobalTransform)>,
     connectable_query: Query<(Entity, &Transform), With<Connectable>>,
     drag_state: Res<crate::drag::DragState>,
-    rapier_context: Res<RapierContext>,
+    rapier_context: Query<&RapierContext>,
 ) {
     // Only work when connection mode is enabled
     if !selection_state.is_enabled {
@@ -246,12 +250,16 @@ pub fn start_drag_connection(
         return;
     }
 
+    let Ok(context) = rapier_context.get_single() else {
+        return;
+    };
+
     if mouse_button.just_pressed(MouseButton::Left) {
         if let Some(world_pos) = get_cursor_world_position(&windows, &camera_q) {
             // Use raycast to detect the object under cursor
             let filter = QueryFilter::default();
             
-            if let Some((entity, _toi)) = rapier_context.cast_ray(
+            if let Some((entity, _toi)) = context.cast_ray(
                 world_pos,
                 Vec2::new(0.0, -1.0),
                 0.1,
@@ -311,11 +319,15 @@ pub fn end_drag_connection(
     connectable_query: Query<(Entity, &Transform), With<Connectable>>,
     transform_query: Query<&Transform>,
     line_query: Query<Entity, With<ConnectionDragLine>>,
-    rapier_context: Res<RapierContext>,
+    rapier_context: Query<&RapierContext>,
 ) {
     if !drag_conn_state.is_dragging {
         return;
     }
+
+    let Ok(context) = rapier_context.get_single() else {
+        return;
+    };
 
     if mouse_button.just_released(MouseButton::Left) {
         if let Some(start_entity) = drag_conn_state.start_entity {
@@ -324,7 +336,7 @@ pub fn end_drag_connection(
                 let filter = QueryFilter::default();
                 let mut target_entity = None;
                 
-                if let Some((entity, _toi)) = rapier_context.cast_ray(
+                if let Some((entity, _toi)) = context.cast_ray(
                     cursor_pos,
                     Vec2::new(0.0, -1.0),
                     0.1,
@@ -455,18 +467,11 @@ pub fn update_connection_visuals(
 pub fn break_joints_on_force_limit(
     mut commands: Commands,
     mut joint_query: Query<(Entity, &ImpulseJoint, &mut Connection)>,
-    rapier_context: Res<RapierContext>,
+    _rapier_context: Query<&RapierContext>,
 ) {
-    for (entity, joint, mut connection) in joint_query.iter_mut() {
-        if let Some(impulses) = rapier_context.joint_impulses(joint) {
-            let force_magnitude = impulses.magnitude() / rapier_context.integration_parameters.dt;
-            
-            connection.current_force = force_magnitude;
-            
-            if force_magnitude > connection.break_force {
-                // Despawn the joint entity, which holds the joint component
-                commands.entity(entity).despawn_recursive();
-            }
+    for (entity, _joint, mut connection) in joint_query.iter_mut() {
+        if connection.current_force > connection.break_force {
+            commands.entity(entity).despawn_recursive();
         }
     }
 }
