@@ -134,12 +134,6 @@ pub struct ConnectionVisual {
     pub material: ConnectionMaterial,
 }
 
-/// Component to mark a physical connector object (the material between two connected objects)
-#[derive(Component)]
-pub struct ConnectorMaterial {
-    pub material: ConnectionMaterial,
-}
-
 // Click mode removed - only drag mode is supported
 
 // create_constraint_system removed - only drag mode is supported
@@ -369,31 +363,12 @@ pub fn end_drag_connection(
 
                         let material = selection_state.material;
 
-                        // Create physical connector material between the two points
-                        let connector_entity = create_connector_material(
-                            &mut commands,
-                            start_click_pos,
-                            end_click_pos,
-                            material,
-                        );
-
-                        // Calculate connector position (midpoint)
-                        let connector_pos = (start_click_pos + end_click_pos) / 2.0;
-                        
-                        // Calculate direction and rotation for local anchor calculation
-                        let direction = end_click_pos - start_click_pos;
-                        let distance = direction.length();
-                        let angle = direction.y.atan2(direction.x);
-                        let rotation = Quat::from_rotation_z(angle);
-                        
-                        // Calculate anchors in the connector's local space (rotated coordinate system)
-                        // The connector is oriented along its length, so anchors are along its local x-axis
-                        let anchor_on_connector_start = Vec2::new(-distance / 2.0, 0.0);
-                        let anchor_on_connector_end = Vec2::new(distance / 2.0, 0.0);
-                        
                         // Calculate anchors on the connected objects
                         let anchor_on_start = start_click_pos - start_body_pos;
                         let anchor_on_end = end_click_pos - end_body_pos;
+                        
+                        // Calculate the rest length of the connection
+                        let rest_length = (end_click_pos - start_click_pos).length();
 
                         let break_force = material.break_force();
                         let connection_kind = match selection_state.constraint_type {
@@ -401,90 +376,40 @@ pub fn end_drag_connection(
                             ConstraintType::Hinge => ConnectionKind::Hinge,
                         };
 
-                        match selection_state.constraint_type {
-                            ConstraintType::Fixed => {
-                                // Connect start object to connector
-                                let joint1 = FixedJointBuilder::new()
-                                    .local_anchor1(anchor_on_start)
-                                    .local_anchor2(anchor_on_connector_start);
+                        // Create a single damped spring joint directly between the two bodies
+                        let stiffness = 1.0 / material.compliance();
+                        let damping = material.damping();
 
-                                commands.entity(connector_entity).insert((
-                                    ImpulseJoint::new(start_entity, joint1),
-                                    UserCreatedJoint,
-                                    JointMaterial(material),
-                                    Connection {
-                                        a: start_entity,
-                                        b: connector_entity,
-                                        anchor_a: anchor_on_start,
-                                        anchor_b: anchor_on_connector_start,
-                                        kind: connection_kind,
-                                        break_force,
-                                        current_force: 0.0,
-                                    },
-                                ));
+                        let joint = SpringJointBuilder::new()
+                            .local_anchor1(anchor_on_start)
+                            .local_anchor2(anchor_on_end)
+                            .rest_length(rest_length)
+                            .stiffness(stiffness)
+                            .damping(damping);
 
-                                // Connect end object to connector
-                                let joint2 = FixedJointBuilder::new()
-                                    .local_anchor1(anchor_on_end)
-                                    .local_anchor2(anchor_on_connector_end);
-
-                                commands.entity(end_entity).insert((
-                                    ImpulseJoint::new(connector_entity, joint2),
-                                    UserCreatedJoint,
-                                    JointMaterial(material),
-                                    Connection {
-                                        a: connector_entity,
-                                        b: end_entity,
-                                        anchor_a: anchor_on_connector_end,
-                                        anchor_b: anchor_on_end,
-                                        kind: connection_kind,
-                                        break_force,
-                                        current_force: 0.0,
-                                    },
-                                ));
-                            }
-                            ConstraintType::Hinge => {
-                                // Connect start object to connector with hinge
-                                let joint1 = RevoluteJointBuilder::new()
-                                    .local_anchor1(anchor_on_start)
-                                    .local_anchor2(anchor_on_connector_start);
-
-                                commands.entity(connector_entity).insert((
-                                    ImpulseJoint::new(start_entity, joint1),
-                                    UserCreatedJoint,
-                                    JointMaterial(material),
-                                    Connection {
-                                        a: start_entity,
-                                        b: connector_entity,
-                                        anchor_a: anchor_on_start,
-                                        anchor_b: anchor_on_connector_start,
-                                        kind: connection_kind,
-                                        break_force,
-                                        current_force: 0.0,
-                                    },
-                                ));
-
-                                // Connect end object to connector with hinge
-                                let joint2 = RevoluteJointBuilder::new()
-                                    .local_anchor1(anchor_on_end)
-                                    .local_anchor2(anchor_on_connector_end);
-
-                                commands.entity(end_entity).insert((
-                                    ImpulseJoint::new(connector_entity, joint2),
-                                    UserCreatedJoint,
-                                    JointMaterial(material),
-                                    Connection {
-                                        a: connector_entity,
-                                        b: end_entity,
-                                        anchor_a: anchor_on_connector_end,
-                                        anchor_b: anchor_on_end,
-                                        kind: connection_kind,
-                                        break_force,
-                                        current_force: 0.0,
-                                    },
-                                ));
-                            }
-                        }
+                        commands.entity(start_entity).with_children(|parent| {
+                            parent.spawn((
+                                ImpulseJoint::new(end_entity, joint),
+                                UserCreatedJoint,
+                                JointMaterial(material),
+                                Connection {
+                                    a: start_entity,
+                                    b: end_entity,
+                                    anchor_a: anchor_on_start,
+                                    anchor_b: anchor_on_end,
+                                    kind: connection_kind,
+                                    break_force,
+                                    current_force: 0.0,
+                                },
+                                ConnectionVisual {
+                                    entity1: start_entity,
+                                    entity2: end_entity,
+                                    anchor1: anchor_on_start,
+                                    anchor2: anchor_on_end,
+                                    material,
+                                },
+                            ));
+                        });
                     }
                 }
             }
@@ -498,147 +423,69 @@ pub fn end_drag_connection(
         // Reset drag connection state
         drag_conn_state.is_dragging = false;
         drag_conn_state.start_entity = None;
-        drag_conn_state.start_position = Vec2::ZERO;
     }
 }
 
+
 fn spawn_connection_drag_line(commands: &mut Commands) {
-    // This is just a marker component - the actual line is drawn using Gizmos
     commands.spawn(ConnectionDragLine);
 }
 
-/// Create a physical connector material between two points
-fn create_connector_material(
-    commands: &mut Commands,
-    start_pos: Vec2,
-    end_pos: Vec2,
-    material: ConnectionMaterial,
-) -> Entity {
-    let direction = end_pos - start_pos;
-    let distance = direction.length();
-    let midpoint = (start_pos + end_pos) / 2.0;
-    let angle = direction.y.atan2(direction.x);
-    
-    // Material properties
-    let (width, density, health_multiplier) = match material {
-        ConnectionMaterial::Wood => (6.0, 0.6, 1.0),
-        ConnectionMaterial::Metal => (4.0, 7.8, 2.0),
-        ConnectionMaterial::Rope => (3.0, 0.3, 0.5),
-        ConnectionMaterial::Plastic => (5.0, 0.9, 1.5),
-    };
-    
-    let health = (distance / 10.0) * health_multiplier * 20.0; // Scale health with length
-    
-    // Create the connector as a thin rectangle
-    let connector = commands.spawn((
-        Sprite {
-            color: material.color(),
-            custom_size: Some(Vec2::new(distance, width)),
-            ..default()
-        },
-        Transform::from_translation(Vec3::new(midpoint.x, midpoint.y, -0.1))
-            .with_rotation(Quat::from_rotation_z(angle)),
-        RigidBody::Dynamic,
-        Collider::cuboid(distance / 2.0, width / 2.0),
-        ColliderMassProperties::Density(density),
-        Restitution::coefficient(0.3),
-        Friction::coefficient(0.5),
-        Damping {
-            linear_damping: 0.5,
-            angular_damping: 1.0,
-        },
-        Health {
-            current: health,
-            max: health,
-        },
-        ConnectorMaterial { material },
-        Connectable, // Allow connecting to connectors
-    )).id();
-    
-    connector
-}
-
-// Visual connection system removed - physical connector materials are used instead
-
-/// Apply stabilizing damping to connected bodies to prevent shaking
-pub fn apply_material_properties_to_joints(
-    joint_query: Query<(Entity, &ImpulseJoint, &JointMaterial), Added<JointMaterial>>,
-    mut damping_query: Query<&mut Damping>,
+/// System to despawn joint entities if one of the connected bodies is despawned
+pub fn handle_despawned_connected_entities(
+    mut commands: Commands,
+    joint_query: Query<(Entity, &ImpulseJoint)>,
+    transform_query: Query<&Transform>, // Used to check for existence
 ) {
-    for (_entity, joint, material) in joint_query.iter() {
-        // Get the parent entity from the joint
-        let parent = joint.parent;
-        
-        // Apply additional damping to both connected bodies based on material
-        // This helps reduce oscillation and shaking
-        let additional_damping = match material.0 {
-            ConnectionMaterial::Wood => (0.3, 0.8),      // (linear, angular)
-            ConnectionMaterial::Metal => (0.1, 0.3),     // Rigid, less damping needed
-            ConnectionMaterial::Rope => (0.6, 1.5),      // Flexible, needs more damping
-            ConnectionMaterial::Plastic => (0.4, 1.0),   // Balanced
-        };
-        
-        // Apply to parent body
-        if let Ok(mut damping) = damping_query.get_mut(parent) {
-            damping.linear_damping = damping.linear_damping.max(additional_damping.0);
-            damping.angular_damping = damping.angular_damping.max(additional_damping.1);
+    for (joint_entity, joint) in joint_query.iter() {
+        let entity1 = joint.parent;
+        let entity2 = joint.entity;
+
+        if transform_query.get(entity1).is_err() || transform_query.get(entity2).is_err() {
+            // One of the connected entities is despawned, so despawn the joint entity
+            if let Some(mut entity_commands) = commands.get_entity(joint_entity) {
+                entity_commands.despawn();
+            }
         }
     }
 }
 
-// clear_selections_on_mode_change removed - only one mode now
-
-/// Monitor joint forces and break connections when force exceeds threshold
-pub fn check_connection_forces(
-    mut commands: Commands,
-    mut connection_query: Query<(Entity, &mut Connection, &ImpulseJoint)>,
+/// System to update the visual representation of connections (the lines)
+pub fn update_connection_visuals(
+    mut gizmos: Gizmos,
+    visual_query: Query<&ConnectionVisual>,
     transform_query: Query<&Transform>,
-    velocity_query: Query<&Velocity>,
 ) {
-    for (entity, mut connection, joint) in connection_query.iter_mut() {
-        // Calculate current force based on the constraint between the two bodies
-        let mut current_force = 0.0;
-        
-        // Get positions and velocities of both entities
-        if let (Ok(transform_a), Ok(transform_b)) = (
-            transform_query.get(connection.a),
-            transform_query.get(connection.b),
+    for visual in visual_query.iter() {
+        if let (Ok(transform1), Ok(transform2)) = (
+            transform_query.get(visual.entity1),
+            transform_query.get(visual.entity2),
         ) {
-            let pos_a = transform_a.translation.truncate();
-            let pos_b = transform_b.translation.truncate();
+            let start_pos = transform1.translation.truncate() + transform1.rotation.rotate(visual.anchor1.extend(0.0)).truncate();
+            let end_pos = transform2.translation.truncate() + transform2.rotation.rotate(visual.anchor2.extend(0.0)).truncate();
             
-            // Calculate the distance between anchors in world space
-            let world_anchor_a = pos_a + transform_a.rotation.mul_vec3(connection.anchor_a.extend(0.0)).truncate();
-            let world_anchor_b = pos_b + transform_b.rotation.mul_vec3(connection.anchor_b.extend(0.0)).truncate();
-            let distance = (world_anchor_b - world_anchor_a).length();
-            
-            // Get velocities to calculate relative motion (strain rate)
-            if let (Ok(vel_a), Ok(vel_b)) = (
-                velocity_query.get(connection.a),
-                velocity_query.get(connection.b),
-            ) {
-                // Calculate relative velocity
-                let relative_vel = (vel_b.linvel - vel_a.linvel).length();
-                
-                // Estimate force based on distance and velocity
-                // This is a simplified model: force ~ displacement * stiffness + velocity * damping
-                let stiffness_estimate = 10000.0; // Approximate stiffness
-                let damping_estimate = 100.0;     // Approximate damping
-                
-                current_force = distance * stiffness_estimate + relative_vel * damping_estimate;
-            }
+            gizmos.line_2d(start_pos, end_pos, visual.material.color()).with_stroke_width(visual.material.thickness());
         }
-        
-        // Update current force in the Connection component
-        connection.current_force = current_force;
-        
-        // Break connection if force exceeds threshold
-        if current_force > connection.break_force {
-            // Remove the joint and connection components
-            commands.entity(entity).remove::<ImpulseJoint>();
-            commands.entity(entity).remove::<Connection>();
-            commands.entity(entity).remove::<UserCreatedJoint>();
-            commands.entity(entity).remove::<JointMaterial>();
+    }
+}
+
+/// System to check for and break joints that exceed their force limit
+pub fn break_joints_on_force_limit(
+    mut commands: Commands,
+    mut joint_query: Query<(Entity, &ImpulseJoint, &mut Connection)>,
+    rapier_context: Res<RapierContext>,
+) {
+    for (entity, joint, mut connection) in joint_query.iter_mut() {
+        if let Some(joint_handle) = rapier_context.impulse_joint_handle(entity) {
+            let impulse = joint_handle.raw.impulses;
+            let force_magnitude = impulse.magnitude() / rapier_context.integration_parameters.dt;
+            
+            connection.current_force = force_magnitude;
+            
+            if force_magnitude > connection.break_force {
+                // Despawn the joint entity, which holds the joint component
+                commands.entity(entity).despawn_recursive();
+            }
         }
     }
 }
