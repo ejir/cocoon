@@ -237,7 +237,7 @@ pub fn start_drag_connection(
     windows: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
     connectable_query: Query<(Entity, &Transform), With<Connectable>>,
-    drag_state: Res<crate::drag::DragState>,
+    drag_state: Res<crate::systems::input::drag::DragState>,
     rapier_context: Query<&RapierContext>,
 ) {
     // Only work when connection mode is enabled

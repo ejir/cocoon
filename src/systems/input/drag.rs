@@ -20,7 +20,7 @@ pub fn start_drag_system(
     camera_q: Query<(&Camera, &GlobalTransform)>,
     draggable_query: Query<(Entity, &Transform, &RigidBody), With<Draggable>>,
     rapier_context: Query<&RapierContext>,
-    selection_state: Res<crate::connection::SelectionState>,
+    selection_state: Res<crate::systems::damage::connection::SelectionState>,
 ) {
     // Don't start drag if connection mode is enabled
     if selection_state.is_enabled {
