@@ -1,13 +1,13 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::components::Bomb;
-use crate::connection::Connectable;
-use crate::constants::{BOMB_SPAWN_KEY, EXPLOSION_RADIUS};
-use crate::drag::Draggable;
-use crate::explosion::{spawn_explosion_debris, spawn_smoke_particles};
-use crate::shockwave::{spawn_shockwave, spawn_shockwave_visuals};
-use crate::utils::get_cursor_world_position;
+use crate::core::components::Bomb;
+use crate::core::constants::{BOMB_SPAWN_KEY, EXPLOSION_RADIUS};
+use crate::core::utils::get_cursor_world_position;
+use crate::entities::weapons::explosion::{spawn_explosion_debris, spawn_smoke_particles};
+use crate::entities::weapons::shockwave::{spawn_shockwave, spawn_shockwave_visuals};
+use crate::systems::damage::connection::Connectable;
+use crate::systems::input::drag::Draggable;
 
 pub fn spawn_bomb_on_keypress(
     mut commands: Commands,

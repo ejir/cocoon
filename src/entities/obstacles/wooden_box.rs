@@ -1,11 +1,11 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::components::{Flammable, Health};
-use crate::connection::Connectable;
-use crate::constants::WOODEN_BOX_SPAWN_KEY;
-use crate::drag::Draggable;
-use crate::utils::get_cursor_world_position;
+use crate::core::components::{Flammable, Health};
+use crate::core::constants::WOODEN_BOX_SPAWN_KEY;
+use crate::core::utils::get_cursor_world_position;
+use crate::systems::damage::connection::Connectable;
+use crate::systems::input::drag::Draggable;
 
 #[derive(Component)]
 pub struct WoodenBox;

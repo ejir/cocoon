@@ -1,52 +1,39 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-mod animation;
-mod blood;
-mod body_parts;
-mod bomb;
-mod combustion;
-mod components;
-mod connection;
-mod constants;
-mod damage;
-mod drag;
-mod drag_create;
-mod entity_finder;
-mod explosion;
-mod iron_block;
-mod particles;
-mod physics;
-mod physics_utils;
-mod ragdoll;
-mod setup;
-mod shockwave;
-mod ui_topbar;
-mod utils;
-mod wooden_box;
+mod core;
+mod entities;
+mod systems;
+mod ui;
 
-use animation::{animate_explosion_flash, animate_explosion_shockwave, animate_smoke_particles};
-use blood::animate_blood_particles;
-use bomb::{bomb_timer_system, spawn_bomb_on_keypress};
-use combustion::{
-    animate_fire_particles, apply_fire_damage, ignite_ragdoll_on_keypress, spread_fire,
+use core::setup::setup;
+use entities::obstacles::{spawn_iron_block_on_keypress, spawn_wooden_box_on_keypress};
+use entities::ragdoll::spawn_ragdoll_on_keypress;
+use entities::weapons::{
+    animate_explosion_core, animate_shockwave_visual, bomb_timer_system,
+    shockwave_joint_damage, spawn_bomb_on_keypress, update_shockwave,
 };
-use connection::{
-    SelectionState, DragConnectionState,
-    start_drag_connection, update_drag_connection, end_drag_connection,
-    update_hover_indicator, update_hover_indicator_position,
-    break_joints_on_force_limit, handle_despawned_connected_entities, update_connection_visuals,
+use systems::damage::{
+    apply_explosive_joint_damage, break_joints_on_force_limit, check_joint_damage,
+    collision_joint_damage, detect_impact_damage, end_drag_connection,
+    handle_despawned_connected_entities, start_drag_connection, track_velocity,
+    update_connection_visuals, update_drag_connection, update_hover_indicator,
+    update_hover_indicator_position, visualize_fractures, DragConnectionState, SelectionState,
 };
-use damage::{apply_explosive_joint_damage, check_joint_damage, collision_joint_damage, detect_impact_damage, track_velocity, visualize_fractures};
-use drag::{end_drag_system, start_drag_system, update_drag_system, DragState};
-use drag_create::{end_create_drag_system, start_create_drag_system, update_create_drag_system, CreateDragState};
-use iron_block::spawn_iron_block_on_keypress;
-use physics::{apply_explosion, cleanup_debris};
-use ragdoll::spawn_ragdoll_on_keypress;
-use setup::setup;
-use shockwave::{animate_explosion_core, animate_shockwave_visual, shockwave_joint_damage, update_shockwave};
-use ui_topbar::{handle_button_clicks, setup_ui_topbar, spawn_selected_object_on_click, sync_selection_with_connection_system, SelectedObject};
-use wooden_box::spawn_wooden_box_on_keypress;
+use systems::effects::{
+    animate_blood_particles, animate_explosion_flash, animate_explosion_shockwave,
+    animate_fire_particles, animate_smoke_particles, apply_fire_damage,
+    ignite_ragdoll_on_keypress, spread_fire,
+};
+use systems::input::{
+    end_create_drag_system, end_drag_system, start_create_drag_system, start_drag_system,
+    update_create_drag_system, update_drag_system, CreateDragState, DragState,
+};
+use systems::physics::{apply_explosion, cleanup_debris};
+use ui::{
+    handle_button_clicks, setup_ui_topbar, spawn_selected_object_on_click,
+    sync_selection_with_connection_system, SelectedObject,
+};
 
 fn main() {
     App::new()
@@ -120,11 +107,16 @@ fn main() {
                 update_create_drag_system,
                 end_drag_system,
                 end_create_drag_system,
-            ).chain(),
+            )
+                .chain(),
         )
         .add_systems(
             Update,
-            (handle_button_clicks, spawn_selected_object_on_click, sync_selection_with_connection_system),
+            (
+                handle_button_clicks,
+                spawn_selected_object_on_click,
+                sync_selection_with_connection_system,
+            ),
         )
         .add_systems(
             Update,
@@ -142,7 +134,8 @@ fn main() {
                 update_connection_visuals,
                 // Handle despawned connected entities
                 handle_despawned_connected_entities,
-            ).chain(),
+            )
+                .chain(),
         )
         .run();
 }

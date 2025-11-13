@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::utils::get_cursor_world_position;
-use crate::components::{Connection, ConnectionKind};
+use crate::core::components::{Connection, ConnectionKind};
+use crate::core::utils::get_cursor_world_position;
 
 /// Material type for connections, affecting joint strength and behavior
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

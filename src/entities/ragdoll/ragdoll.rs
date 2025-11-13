@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 
-use crate::body_parts::{create_joint, spawn_body_part, BodyPartConfig, JointConfig};
-use crate::constants::RAGDOLL_SPAWN_KEY;
-use crate::utils::get_cursor_world_position;
+use crate::core::constants::RAGDOLL_SPAWN_KEY;
+use crate::core::utils::get_cursor_world_position;
+use crate::entities::ragdoll::body_parts::{create_joint, spawn_body_part, BodyPartConfig, JointConfig};
 
 pub fn spawn_ragdoll_on_keypress(
     mut commands: Commands,

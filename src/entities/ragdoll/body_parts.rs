@@ -1,10 +1,10 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::components::{Flammable, Health, RagdollPart};
-use crate::connection::Connectable;
-use crate::damage::JointHealth;
-use crate::drag::Draggable;
+use crate::core::components::{Flammable, Health, RagdollPart};
+use crate::systems::damage::connection::Connectable;
+use crate::systems::damage::damage::JointHealth;
+use crate::systems::input::drag::Draggable;
 
 pub struct BodyPartConfig {
     pub size: Vec2,

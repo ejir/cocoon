@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::blood::spawn_blood_particles;
-use crate::components::RagdollPart;
+use crate::core::components::RagdollPart;
+use crate::systems::effects::blood::spawn_blood_particles;
 
 #[derive(Component)]
 pub struct JointHealth {

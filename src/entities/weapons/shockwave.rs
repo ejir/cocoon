@@ -1,12 +1,12 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::blood::spawn_blood_particles;
-use crate::components::{Health, RagdollPart, ShockwaveRing};
-use crate::damage::{Fractured, JointHealth};
-use crate::explosion::spawn_object_fragments;
-use crate::iron_block::IronBlock;
-use crate::wooden_box::WoodenBox;
+use crate::core::components::{Health, RagdollPart, ShockwaveRing};
+use crate::entities::obstacles::iron_block::IronBlock;
+use crate::entities::obstacles::wooden_box::WoodenBox;
+use crate::entities::weapons::explosion::spawn_object_fragments;
+use crate::systems::damage::damage::{Fractured, JointHealth};
+use crate::systems::effects::blood::spawn_blood_particles;
 
 pub fn spawn_shockwave(commands: &mut Commands, position: Vec2, max_radius: f32, peak_pressure: f32) {
     commands.spawn(ShockwaveRing {
