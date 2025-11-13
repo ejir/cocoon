@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
 use crate::utils::get_cursor_world_position;
-use crate::components::Health;
+use crate::components::{Health, Connection, ConnectionKind};
 
 /// Material type for connections, affecting joint strength and behavior
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -51,6 +51,16 @@ impl ConnectionMaterial {
             ConnectionMaterial::Metal => 3.0,
             ConnectionMaterial::Rope => 2.0,
             ConnectionMaterial::Plastic => 3.5,
+        }
+    }
+    
+    /// Get the break force threshold for this material
+    pub fn break_force(&self) -> f32 {
+        match self {
+            ConnectionMaterial::Wood => 5000.0,
+            ConnectionMaterial::Metal => 15000.0,
+            ConnectionMaterial::Rope => 2000.0,
+            ConnectionMaterial::Plastic => 7000.0,
         }
     }
 }
@@ -385,6 +395,12 @@ pub fn end_drag_connection(
                         let anchor_on_start = start_click_pos - start_body_pos;
                         let anchor_on_end = end_click_pos - end_body_pos;
 
+                        let break_force = material.break_force();
+                        let connection_kind = match selection_state.constraint_type {
+                            ConstraintType::Fixed => ConnectionKind::Fixed,
+                            ConstraintType::Hinge => ConnectionKind::Hinge,
+                        };
+
                         match selection_state.constraint_type {
                             ConstraintType::Fixed => {
                                 // Connect start object to connector
@@ -396,6 +412,15 @@ pub fn end_drag_connection(
                                     ImpulseJoint::new(start_entity, joint1),
                                     UserCreatedJoint,
                                     JointMaterial(material),
+                                    Connection {
+                                        a: start_entity,
+                                        b: connector_entity,
+                                        anchor_a: anchor_on_start,
+                                        anchor_b: anchor_on_connector_start,
+                                        kind: connection_kind,
+                                        break_force,
+                                        current_force: 0.0,
+                                    },
                                 ));
 
                                 // Connect end object to connector
@@ -407,6 +432,15 @@ pub fn end_drag_connection(
                                     ImpulseJoint::new(connector_entity, joint2),
                                     UserCreatedJoint,
                                     JointMaterial(material),
+                                    Connection {
+                                        a: connector_entity,
+                                        b: end_entity,
+                                        anchor_a: anchor_on_connector_end,
+                                        anchor_b: anchor_on_end,
+                                        kind: connection_kind,
+                                        break_force,
+                                        current_force: 0.0,
+                                    },
                                 ));
                             }
                             ConstraintType::Hinge => {
@@ -419,6 +453,15 @@ pub fn end_drag_connection(
                                     ImpulseJoint::new(start_entity, joint1),
                                     UserCreatedJoint,
                                     JointMaterial(material),
+                                    Connection {
+                                        a: start_entity,
+                                        b: connector_entity,
+                                        anchor_a: anchor_on_start,
+                                        anchor_b: anchor_on_connector_start,
+                                        kind: connection_kind,
+                                        break_force,
+                                        current_force: 0.0,
+                                    },
                                 ));
 
                                 // Connect end object to connector with hinge
@@ -430,6 +473,15 @@ pub fn end_drag_connection(
                                     ImpulseJoint::new(connector_entity, joint2),
                                     UserCreatedJoint,
                                     JointMaterial(material),
+                                    Connection {
+                                        a: connector_entity,
+                                        b: end_entity,
+                                        anchor_a: anchor_on_connector_end,
+                                        anchor_b: anchor_on_end,
+                                        kind: connection_kind,
+                                        break_force,
+                                        current_force: 0.0,
+                                    },
                                 ));
                             }
                         }
@@ -535,3 +587,58 @@ pub fn apply_material_properties_to_joints(
 }
 
 // clear_selections_on_mode_change removed - only one mode now
+
+/// Monitor joint forces and break connections when force exceeds threshold
+pub fn check_connection_forces(
+    mut commands: Commands,
+    mut connection_query: Query<(Entity, &mut Connection, &ImpulseJoint)>,
+    transform_query: Query<&Transform>,
+    velocity_query: Query<&Velocity>,
+) {
+    for (entity, mut connection, joint) in connection_query.iter_mut() {
+        // Calculate current force based on the constraint between the two bodies
+        let mut current_force = 0.0;
+        
+        // Get positions and velocities of both entities
+        if let (Ok(transform_a), Ok(transform_b)) = (
+            transform_query.get(connection.a),
+            transform_query.get(connection.b),
+        ) {
+            let pos_a = transform_a.translation.truncate();
+            let pos_b = transform_b.translation.truncate();
+            
+            // Calculate the distance between anchors in world space
+            let world_anchor_a = pos_a + transform_a.rotation.mul_vec3(connection.anchor_a.extend(0.0)).truncate();
+            let world_anchor_b = pos_b + transform_b.rotation.mul_vec3(connection.anchor_b.extend(0.0)).truncate();
+            let distance = (world_anchor_b - world_anchor_a).length();
+            
+            // Get velocities to calculate relative motion (strain rate)
+            if let (Ok(vel_a), Ok(vel_b)) = (
+                velocity_query.get(connection.a),
+                velocity_query.get(connection.b),
+            ) {
+                // Calculate relative velocity
+                let relative_vel = (vel_b.linvel - vel_a.linvel).length();
+                
+                // Estimate force based on distance and velocity
+                // This is a simplified model: force ~ displacement * stiffness + velocity * damping
+                let stiffness_estimate = 10000.0; // Approximate stiffness
+                let damping_estimate = 100.0;     // Approximate damping
+                
+                current_force = distance * stiffness_estimate + relative_vel * damping_estimate;
+            }
+        }
+        
+        // Update current force in the Connection component
+        connection.current_force = current_force;
+        
+        // Break connection if force exceeds threshold
+        if current_force > connection.break_force {
+            // Remove the joint and connection components
+            commands.entity(entity).remove::<ImpulseJoint>();
+            commands.entity(entity).remove::<Connection>();
+            commands.entity(entity).remove::<UserCreatedJoint>();
+            commands.entity(entity).remove::<JointMaterial>();
+        }
+    }
+}
