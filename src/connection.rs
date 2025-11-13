@@ -366,9 +366,6 @@ pub fn end_drag_connection(
                         // Calculate anchors on the connected objects
                         let anchor_on_start = start_click_pos - start_body_pos;
                         let anchor_on_end = end_click_pos - end_body_pos;
-                        
-                        // Calculate the rest length of the connection
-                        let rest_length = (end_click_pos - start_click_pos).length();
 
                         let break_force = material.break_force();
                         let connection_kind = match selection_state.constraint_type {
@@ -376,17 +373,32 @@ pub fn end_drag_connection(
                             ConstraintType::Hinge => ConnectionKind::Hinge,
                         };
 
-                        // Create a single damped spring joint directly between the two bodies
-                        let stiffness = 1.0 / material.compliance();
-                        let damping = material.damping();
-
-                        let joint = SpringJointBuilder::new(rest_length, stiffness, damping)
-                            .local_anchor1(anchor_on_start)
-                            .local_anchor2(anchor_on_end);
+                        // Create appropriate joint type based on constraint type
+                        let joint = match selection_state.constraint_type {
+                            ConstraintType::Fixed => {
+                                // Fixed joint: non-rotatable, rigid connection like a nail or weld
+                                let fixed_joint = FixedJointBuilder::new()
+                                    .local_anchor1(anchor_on_start)
+                                    .local_anchor2(anchor_on_end);
+                                
+                                ImpulseJoint::new(end_entity, fixed_joint)
+                            }
+                            ConstraintType::Hinge => {
+                                // Revolute joint: rotatable connection like a bearing or hinge
+                                // Apply material damping for rotational friction
+                                let revolute_joint = RevoluteJointBuilder::new()
+                                    .local_anchor1(anchor_on_start)
+                                    .local_anchor2(anchor_on_end)
+                                    .motor_model(MotorModel::ForceBased)
+                                    .motor_max_force(material.damping() * 100.0);
+                                
+                                ImpulseJoint::new(end_entity, revolute_joint)
+                            }
+                        };
 
                         commands.entity(start_entity).with_children(|parent| {
                             parent.spawn((
-                                ImpulseJoint::new(end_entity, joint),
+                                joint,
                                 UserCreatedJoint,
                                 JointMaterial(material),
                                 Connection {
@@ -466,10 +478,10 @@ pub fn update_connection_visuals(
 /// System to check for and break joints that exceed their force limit
 pub fn break_joints_on_force_limit(
     mut commands: Commands,
-    mut joint_query: Query<(Entity, &ImpulseJoint, &mut Connection)>,
+    joint_query: Query<(Entity, &ImpulseJoint, &Connection)>,
     _rapier_context: Query<&RapierContext>,
 ) {
-    for (entity, _joint, mut connection) in joint_query.iter_mut() {
+    for (entity, _joint, connection) in joint_query.iter() {
         if connection.current_force > connection.break_force {
             commands.entity(entity).despawn_recursive();
         }
