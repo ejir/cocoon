@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
 use crate::utils::get_cursor_world_position;
-use crate::components::{Health, Connection, ConnectionKind};
+use crate::components::{Connection, ConnectionKind};
 
 /// Material type for connections, affecting joint strength and behavior
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -380,12 +380,9 @@ pub fn end_drag_connection(
                         let stiffness = 1.0 / material.compliance();
                         let damping = material.damping();
 
-                        let joint = SpringJointBuilder::new()
+                        let joint = SpringJointBuilder::new(rest_length, stiffness, damping)
                             .local_anchor1(anchor_on_start)
-                            .local_anchor2(anchor_on_end)
-                            .rest_length(rest_length)
-                            .stiffness(stiffness)
-                            .damping(damping);
+                            .local_anchor2(anchor_on_end);
 
                         commands.entity(start_entity).with_children(|parent| {
                             parent.spawn((
@@ -434,14 +431,11 @@ fn spawn_connection_drag_line(commands: &mut Commands) {
 /// System to despawn joint entities if one of the connected bodies is despawned
 pub fn handle_despawned_connected_entities(
     mut commands: Commands,
-    joint_query: Query<(Entity, &ImpulseJoint)>,
+    joint_query: Query<(Entity, &Connection)>,
     transform_query: Query<&Transform>, // Used to check for existence
 ) {
-    for (joint_entity, joint) in joint_query.iter() {
-        let entity1 = joint.parent;
-        let entity2 = joint.entity;
-
-        if transform_query.get(entity1).is_err() || transform_query.get(entity2).is_err() {
+    for (joint_entity, connection) in joint_query.iter() {
+        if transform_query.get(connection.a).is_err() || transform_query.get(connection.b).is_err() {
             // One of the connected entities is despawned, so despawn the joint entity
             if let Some(mut entity_commands) = commands.get_entity(joint_entity) {
                 entity_commands.despawn();
@@ -461,10 +455,10 @@ pub fn update_connection_visuals(
             transform_query.get(visual.entity1),
             transform_query.get(visual.entity2),
         ) {
-            let start_pos = transform1.translation.truncate() + transform1.rotation.rotate(visual.anchor1.extend(0.0)).truncate();
-            let end_pos = transform2.translation.truncate() + transform2.rotation.rotate(visual.anchor2.extend(0.0)).truncate();
+            let start_pos = transform1.translation.truncate() + (transform1.rotation * visual.anchor1.extend(0.0)).truncate();
+            let end_pos = transform2.translation.truncate() + (transform2.rotation * visual.anchor2.extend(0.0)).truncate();
             
-            gizmos.line_2d(start_pos, end_pos, visual.material.color()).with_stroke_width(visual.material.thickness());
+            gizmos.line_2d(start_pos, end_pos, visual.material.color());
         }
     }
 }
@@ -473,19 +467,17 @@ pub fn update_connection_visuals(
 pub fn break_joints_on_force_limit(
     mut commands: Commands,
     mut joint_query: Query<(Entity, &ImpulseJoint, &mut Connection)>,
-    rapier_context: Res<RapierContext>,
+    integration_parameters: Res<RapierIntegrationParameters>,
 ) {
     for (entity, joint, mut connection) in joint_query.iter_mut() {
-        if let Some(joint_handle) = rapier_context.impulse_joint_handle(entity) {
-            let impulse = joint_handle.raw.impulses;
-            let force_magnitude = impulse.magnitude() / rapier_context.integration_parameters.dt;
-            
-            connection.current_force = force_magnitude;
-            
-            if force_magnitude > connection.break_force {
-                // Despawn the joint entity, which holds the joint component
-                commands.entity(entity).despawn_recursive();
-            }
+        let impulse = joint.data.impulses;
+        let force_magnitude = impulse.magnitude() / integration_parameters.dt;
+        
+        connection.current_force = force_magnitude;
+        
+        if force_magnitude > connection.break_force {
+            // Despawn the joint entity, which holds the joint component
+            commands.entity(entity).despawn_recursive();
         }
     }
 }

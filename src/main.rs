@@ -35,8 +35,8 @@ use connection::{
     SelectionState, DragConnectionState,
     start_drag_connection, update_drag_connection, end_drag_connection,
     update_hover_indicator, update_hover_indicator_position,
-    apply_material_properties_to_joints, check_connection_forces,
-};
+    break_joints_on_force_limit,
+    };
 use damage::{apply_explosive_joint_damage, check_joint_damage, collision_joint_damage, detect_impact_damage, track_velocity, visualize_fractures};
 use drag::{end_drag_system, start_drag_system, update_drag_system, DragState};
 use drag_create::{end_create_drag_system, start_create_drag_system, update_create_drag_system, CreateDragState};
@@ -136,10 +136,8 @@ fn main() {
                 start_drag_connection,
                 update_drag_connection,
                 end_drag_connection,
-                // Apply material properties
-                apply_material_properties_to_joints,
                 // Check and break connections based on force
-                check_connection_forces,
+                break_joints_on_force_limit,
             ).chain(),
         )
         .run();
