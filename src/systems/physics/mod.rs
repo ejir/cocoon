@@ -1,3 +1,5 @@
+//! Physics systems and utilities
+
 pub mod physics;
 pub mod physics_utils;
 

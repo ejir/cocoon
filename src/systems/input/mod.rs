@@ -1,3 +1,5 @@
+//! Input handling systems for mouse dragging and interaction
+
 pub mod drag;
 pub mod drag_create;
 
