@@ -35,8 +35,8 @@ use connection::{
     SelectionState, DragConnectionState,
     start_drag_connection, update_drag_connection, end_drag_connection,
     update_hover_indicator, update_hover_indicator_position,
-    break_joints_on_force_limit,
-    };
+    break_joints_on_force_limit, handle_despawned_connected_entities, update_connection_visuals,
+};
 use damage::{apply_explosive_joint_damage, check_joint_damage, collision_joint_damage, detect_impact_damage, track_velocity, visualize_fractures};
 use drag::{end_drag_system, start_drag_system, update_drag_system, DragState};
 use drag_create::{end_create_drag_system, start_create_drag_system, update_create_drag_system, CreateDragState};
@@ -138,6 +138,10 @@ fn main() {
                 end_drag_connection,
                 // Check and break connections based on force
                 break_joints_on_force_limit,
+                // Update connection visuals
+                update_connection_visuals,
+                // Handle despawned connected entities
+                handle_despawned_connected_entities,
             ).chain(),
         )
         .run();
