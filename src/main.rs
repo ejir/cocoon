@@ -35,7 +35,6 @@ use connection::{
     SelectionState, DragConnectionState,
     start_drag_connection, update_drag_connection, end_drag_connection,
     update_hover_indicator, update_hover_indicator_position,
-    update_connection_visuals, cleanup_orphaned_visuals,
     apply_material_properties_to_joints,
 };
 use damage::{apply_explosive_joint_damage, check_joint_damage, collision_joint_damage, detect_impact_damage, track_velocity, visualize_fractures};
@@ -137,10 +136,8 @@ fn main() {
                 start_drag_connection,
                 update_drag_connection,
                 end_drag_connection,
-                // Apply material properties and visual representation
+                // Apply material properties
                 apply_material_properties_to_joints,
-                update_connection_visuals,
-                cleanup_orphaned_visuals,
             ).chain(),
         )
         .run();
