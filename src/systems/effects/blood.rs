@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 use rand::Rng;
 
-use crate::components::BloodParticle;
-use crate::utils::set_sprite_alpha;
+use crate::core::components::BloodParticle;
+use crate::core::utils::set_sprite_alpha;
 
 pub fn spawn_blood_particles(commands: &mut Commands, position: Vec2, impulse_direction: Vec2) {
     let mut rng = rand::thread_rng();

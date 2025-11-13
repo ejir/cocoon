@@ -1,10 +1,10 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::connection::Connectable;
-use crate::constants::IRON_BLOCK_SPAWN_KEY;
-use crate::drag::Draggable;
-use crate::utils::get_cursor_world_position;
+use crate::core::constants::IRON_BLOCK_SPAWN_KEY;
+use crate::core::utils::get_cursor_world_position;
+use crate::systems::damage::connection::Connectable;
+use crate::systems::input::drag::Draggable;
 
 #[derive(Component)]
 pub struct IronBlock;

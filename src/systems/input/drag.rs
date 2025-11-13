@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::utils::get_cursor_world_position;
+use crate::core::utils::get_cursor_world_position;
 
 #[derive(Component)]
 pub struct Draggable;

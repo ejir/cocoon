@@ -1,13 +1,13 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::components::{Flammable, Health};
-use crate::connection::Connectable;
-use crate::drag::{Draggable, DragState};
-use crate::iron_block::IronBlock;
-use crate::ui_topbar::{ObjectType, SelectedObject};
-use crate::utils::get_cursor_world_position;
-use crate::wooden_box::WoodenBox;
+use crate::core::components::{Flammable, Health};
+use crate::core::utils::get_cursor_world_position;
+use crate::entities::obstacles::iron_block::IronBlock;
+use crate::entities::obstacles::wooden_box::WoodenBox;
+use crate::systems::damage::connection::Connectable;
+use crate::systems::input::drag::{Draggable, DragState};
+use crate::ui::ui_topbar::{ObjectType, SelectedObject};
 
 /// Resource to track the state of drag-to-create
 #[derive(Resource, Default)]

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
-use crate::components::{ExplosionFlash, ExplosionShockwave, SmokeParticle};
-use crate::utils::set_sprite_alpha;
+use crate::core::components::{ExplosionFlash, ExplosionShockwave, SmokeParticle};
+use crate::core::utils::set_sprite_alpha;
 
 pub fn animate_explosion_flash(
     mut commands: Commands,

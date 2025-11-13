@@ -1,11 +1,11 @@
 use bevy::prelude::*;
 use rand::Rng;
 
-use crate::blood::spawn_blood_particles;
-use crate::components::{FireParticle, Flammable, Health, OnFire, RagdollPart};
-use crate::constants::{FIRE_DAMAGE_PER_SEC, FIRE_DURATION, FIRE_SPAWN_KEY, FIRE_SPREAD_RADIUS};
-use crate::entity_finder::find_closest_entity;
-use crate::utils::{get_cursor_world_position, set_sprite_alpha};
+use crate::core::components::{FireParticle, Flammable, Health, OnFire, RagdollPart};
+use crate::core::constants::{FIRE_DAMAGE_PER_SEC, FIRE_DURATION, FIRE_SPAWN_KEY, FIRE_SPREAD_RADIUS};
+use crate::core::entity_finder::find_closest_entity;
+use crate::core::utils::{get_cursor_world_position, set_sprite_alpha};
+use crate::systems::effects::blood::spawn_blood_particles;
 
 pub fn ignite_ragdoll_on_keypress(
     mut commands: Commands,

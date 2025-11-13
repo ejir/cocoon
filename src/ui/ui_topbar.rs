@@ -1,11 +1,12 @@
 use bevy::prelude::*;
 
-use crate::bomb::spawn_bomb_from_ui;
-use crate::combustion::spawn_fire_from_ui;
-use crate::connection::{ConstraintType, SelectionState, ConnectionMaterial};
-use crate::drag::DragState;
-use crate::ragdoll::spawn_ragdoll_from_ui;
-use crate::utils::get_cursor_world_position;
+use crate::core::components::{Flammable, OnFire};
+use crate::core::utils::get_cursor_world_position;
+use crate::entities::ragdoll::spawn_ragdoll_from_ui;
+use crate::entities::weapons::spawn_bomb_from_ui;
+use crate::systems::damage::connection::{ConstraintType, SelectionState, ConnectionMaterial};
+use crate::systems::effects::spawn_fire_from_ui;
+use crate::systems::input::drag::DragState;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ObjectType {
@@ -153,7 +154,7 @@ pub fn spawn_selected_object_on_click(
     drag_state: Res<DragState>,
     windows: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
-    flammable_query: Query<(Entity, &Transform, &crate::components::Flammable), Without<crate::components::OnFire>>,
+    flammable_query: Query<(Entity, &Transform, &Flammable), Without<OnFire>>,
 ) {
     if mouse_button.just_released(MouseButton::Left) && drag_state.dragging_entity.is_none() {
         if let Some(world_pos) = get_cursor_world_position(&windows, &camera_q) {

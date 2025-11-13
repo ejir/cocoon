@@ -1,12 +1,12 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::blood::spawn_blood_particles;
-use crate::components::{Debris, Explosion, Health, RagdollPart};
-use crate::explosion::spawn_object_fragments;
-use crate::physics_utils::apply_radial_impulse;
-use crate::utils::fade_sprite_alpha;
-use crate::wooden_box::WoodenBox;
+use crate::core::components::{Debris, Explosion, Health, RagdollPart};
+use crate::core::utils::fade_sprite_alpha;
+use crate::entities::obstacles::wooden_box::WoodenBox;
+use crate::entities::weapons::explosion::spawn_object_fragments;
+use crate::systems::effects::blood::spawn_blood_particles;
+use crate::systems::physics::physics_utils::apply_radial_impulse;
 
 pub fn apply_explosion(
     mut commands: Commands,
