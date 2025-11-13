@@ -1,3 +1,5 @@
+//! Obstacle entities (boxes, blocks, etc.)
+
 pub mod iron_block;
 pub mod wooden_box;
 

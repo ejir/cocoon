@@ -1,3 +1,5 @@
+//! Ragdoll entity definitions and body part systems
+
 pub mod body_parts;
 pub mod ragdoll;
 

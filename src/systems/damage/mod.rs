@@ -1,3 +1,5 @@
+//! Damage and joint connection systems
+
 pub mod connection;
 pub mod damage;
 

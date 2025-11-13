@@ -1,3 +1,5 @@
+//! Visual effects including particles, animations, and fire
+
 pub mod animation;
 pub mod blood;
 pub mod combustion;

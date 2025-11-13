@@ -1,3 +1,5 @@
+//! Weapon entities including bombs, explosions, and shockwaves
+
 pub mod bomb;
 pub mod explosion;
 pub mod shockwave;
