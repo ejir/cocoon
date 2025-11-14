@@ -150,7 +150,7 @@ fn spawn_wooden_box_with_size(commands: &mut Commands, position: Vec2, size: Vec
         Restitution::coefficient(0.3),
         Friction::coefficient(0.7),
         ExternalImpulse::default(),
-        Velocity::default(),
+        Velocity::zero(),  // Initialize with zero velocity for stable physics
         WoodenBox,
         Draggable,
         Connectable,
@@ -178,7 +178,7 @@ fn spawn_iron_block_with_size(commands: &mut Commands, position: Vec2, size: Vec
         Restitution::coefficient(0.2),
         Friction::coefficient(0.5),
         ExternalImpulse::default(),
-        Velocity::default(),
+        Velocity::zero(),  // Initialize with zero velocity for stable physics
         IronBlock,
         Draggable,
         Connectable,

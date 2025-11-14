@@ -43,7 +43,7 @@ fn spawn_iron_block(commands: &mut Commands, position: Vec2) {
         Restitution::coefficient(0.2),
         Friction::coefficient(0.5),
         ExternalImpulse::default(),
-        Velocity::default(),
+        Velocity::zero(),  // Initialize with zero velocity for stable physics
         IronBlock,
         Draggable,
         Connectable,
