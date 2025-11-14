@@ -9,7 +9,7 @@ Fixed coordinate system transformation issues in the Connection System. Changed 
 ## 主要变更 (Key Changes)
 
 ### 1. `end_drag_connection` 函数
-**文件**: `src/systems/damage/connection.rs` (行 366-394)
+**文件**: `src/systems/damage/connection.rs` (行 366-427)
 
 **之前**:
 ```rust
@@ -31,8 +31,19 @@ let anchor_on_start = Vec2::new(
 );
 ```
 
-### 2. `update_connection_visuals` 函数
-**文件**: `src/systems/damage/connection.rs` (行 485-525)
+### 2. 添加锚点重合说明
+**文件**: `src/systems/damage/connection.rs` (行 402-406)
+
+添加了注释说明锚点与物体重合是安全的：
+```rust
+// Note: Anchors can be anywhere on/in the objects - the physics engine
+// handles this correctly. Joints are constraints, not physical entities,
+// so anchor overlap with object geometry is not a problem.
+// Rapier2D automatically manages collision between jointed bodies.
+```
+
+### 3. `update_connection_visuals` 函数
+**文件**: `src/systems/damage/connection.rs` (行 491-525)
 
 **之前**:
 ```rust
@@ -117,5 +128,6 @@ let start_pos = translation1.truncate() + world_anchor1;
 
 详细文档请参阅:
 - [FIX_CONNECTION_COORDINATE_SYSTEM.md](FIX_CONNECTION_COORDINATE_SYSTEM.md) - 完整的技术文档
+- [CONNECTION_ANCHOR_OVERLAP_ANALYSIS.md](CONNECTION_ANCHOR_OVERLAP_ANALYSIS.md) - 锚点重合安全性分析
 - [FIX_CONNECTOR_ANCHOR_ROTATION.md](FIX_CONNECTOR_ANCHOR_ROTATION.md) - 之前的相关修复
 - [ALLOW_CONNECTION_FROM_ANY_POINT.md](ALLOW_CONNECTION_FROM_ANY_POINT.md) - 任意点连接功能

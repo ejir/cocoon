@@ -400,6 +400,10 @@ pub fn end_drag_connection(
                         };
 
                         // Create appropriate joint type based on constraint type
+                        // Note: Anchors can be anywhere on/in the objects - the physics engine
+                        // handles this correctly. Joints are constraints, not physical entities,
+                        // so anchor overlap with object geometry is not a problem.
+                        // Rapier2D automatically manages collision between jointed bodies.
                         let joint = match selection_state.constraint_type {
                             ConstraintType::Fixed => {
                                 // Fixed joint: non-rotatable, rigid connection like a nail or weld
