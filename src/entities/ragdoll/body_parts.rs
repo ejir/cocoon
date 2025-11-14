@@ -83,6 +83,11 @@ pub fn create_joint(commands: &mut Commands, config: JointConfig) {
         .motor_model(MotorModel::ForceBased)
         .motor_max_force(350.0);  // High damping for soft tissue (damping > 3)
 
+    // CRITICAL: Zero out velocities at joint creation to prevent explosion
+    // This is essential for PPG (People Playground) style physics stability
+    commands.entity(config.parent).insert(Velocity::zero());
+    commands.entity(config.child).insert(Velocity::zero());
+
     commands
         .entity(config.child)
         .insert((
