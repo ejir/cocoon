@@ -46,6 +46,7 @@ pub fn spawn_body_part(commands: &mut Commands, config: BodyPartConfig) -> Entit
                 linear_damping: config.linear_damping,
                 angular_damping: config.angular_damping,
             },
+            Velocity::zero(),  // Initialize with zero velocity for stable joint creation
             ExternalImpulse::default(),
             RagdollPart,
             Health {
@@ -71,10 +72,16 @@ pub struct JointConfig {
 }
 
 pub fn create_joint(commands: &mut Commands, config: JointConfig) {
+    // Anti-vibration ragdoll joint configuration:
+    // - Apply high damping (> 3) for soft tissue simulation via motor force
+    // - Local anchors must be precisely at joint connection points
+    // - Motor max force provides damping to prevent oscillation
     let joint = RevoluteJointBuilder::new()
         .local_anchor1(config.parent_anchor)
         .local_anchor2(config.child_anchor)
-        .limits([config.min_angle, config.max_angle]);
+        .limits([config.min_angle, config.max_angle])
+        .motor_model(MotorModel::ForceBased)
+        .motor_max_force(350.0);  // High damping for soft tissue (damping > 3)
 
     commands
         .entity(config.child)

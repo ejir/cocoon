@@ -40,6 +40,7 @@ fn spawn_bomb(commands: &mut Commands, position: Vec2) {
         Collider::ball(radius),
         ColliderMassProperties::Density(2.0),
         Restitution::coefficient(0.5),
+        Velocity::zero(),  // Initialize with zero velocity for stable physics
         ExternalImpulse::default(),
         Bomb {
             timer: Timer::from_seconds(2.0, TimerMode::Once),

@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_rapier2d::prelude::*;
 
 use crate::core::constants::RAGDOLL_SPAWN_KEY;
 use crate::core::utils::get_cursor_world_position;

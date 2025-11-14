@@ -44,7 +44,7 @@ fn spawn_wooden_box(commands: &mut Commands, position: Vec2) {
         Restitution::coefficient(0.3),
         Friction::coefficient(0.7),
         ExternalImpulse::default(),
-        Velocity::default(),
+        Velocity::zero(),  // Initialize with zero velocity for stable physics
         WoodenBox,
         Draggable,
         Connectable,

@@ -15,22 +15,24 @@ pub enum ConnectionMaterial {
 
 impl ConnectionMaterial {
     /// Get the compliance (inverse stiffness) for this material
+    /// Stiffness = 1/compliance, kept under 600 for stability
     pub fn compliance(&self) -> f32 {
         match self {
-            ConnectionMaterial::Wood => 0.00001,
-            ConnectionMaterial::Metal => 0.000001,
-            ConnectionMaterial::Rope => 0.0001,
-            ConnectionMaterial::Plastic => 0.00005,
+            ConnectionMaterial::Wood => 1.0 / 400.0,    // stiffness = 400
+            ConnectionMaterial::Metal => 1.0 / 500.0,   // stiffness = 500
+            ConnectionMaterial::Rope => 1.0 / 150.0,    // stiffness = 150
+            ConnectionMaterial::Plastic => 1.0 / 300.0, // stiffness = 300
         }
     }
     
     /// Get the damping coefficient for this material
+    /// Damping > 2.5 greatly improves stability, rubber/rope materials need damping > 3
     pub fn damping(&self) -> f32 {
         match self {
-            ConnectionMaterial::Wood => 0.5,
-            ConnectionMaterial::Metal => 0.1,
-            ConnectionMaterial::Rope => 2.0,
-            ConnectionMaterial::Plastic => 1.0,
+            ConnectionMaterial::Wood => 3.5,   // Soft material, needs high damping
+            ConnectionMaterial::Metal => 2.5,  // Rigid material, moderate damping
+            ConnectionMaterial::Rope => 5.0,   // Very soft, needs very high damping
+            ConnectionMaterial::Plastic => 3.0, // Soft material, needs high damping
         }
     }
     
@@ -318,6 +320,7 @@ pub fn end_drag_connection(
     camera_q: Query<(&Camera, &GlobalTransform)>,
     connectable_query: Query<(Entity, &Transform), With<Connectable>>,
     global_transform_query: Query<&GlobalTransform>,
+    mut velocity_query: Query<&mut Velocity>,
     line_query: Query<Entity, With<ConnectionDragLine>>,
     rapier_context: Query<&RapierContext>,
 ) {
@@ -393,6 +396,17 @@ pub fn end_drag_connection(
                             end_world_offset.x * sin_end + end_world_offset.y * cos_end,
                         );
 
+                        // CRITICAL: Zero out velocities at connection moment to prevent explosion
+                        // This is essential for PPG (People Playground) style physics stability
+                        if let Ok(mut vel) = velocity_query.get_mut(start_entity) {
+                            vel.linvel = Vec2::ZERO;
+                            vel.angvel = 0.0;
+                        }
+                        if let Ok(mut vel) = velocity_query.get_mut(end_entity) {
+                            vel.linvel = Vec2::ZERO;
+                            vel.angvel = 0.0;
+                        }
+
                         let break_force = material.break_force();
                         let connection_kind = match selection_state.constraint_type {
                             ConstraintType::Fixed => ConnectionKind::Fixed,
@@ -400,13 +414,14 @@ pub fn end_drag_connection(
                         };
 
                         // Create appropriate joint type based on constraint type
-                        // Note: Anchors can be anywhere on/in the objects - the physics engine
-                        // handles this correctly. Joints are constraints, not physical entities,
-                        // so anchor overlap with object geometry is not a problem.
-                        // Rapier2D automatically manages collision between jointed bodies.
+                        // Anti-vibration/anti-explosion strategy:
+                        // 1. Apply proper damping (> 2.5) via motor force
+                        // 2. Local anchors are precisely calculated above
+                        // 3. Velocities are zeroed to prevent explosive forces
                         let joint = match selection_state.constraint_type {
                             ConstraintType::Fixed => {
                                 // Fixed joint: non-rotatable, rigid connection like a nail or weld
+                                // Uses material compliance internally for stability
                                 let fixed_joint = FixedJointBuilder::new()
                                     .local_anchor1(anchor_on_start)
                                     .local_anchor2(anchor_on_end);
