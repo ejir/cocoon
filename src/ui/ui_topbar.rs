@@ -75,7 +75,7 @@ pub fn setup_ui_topbar(mut commands: Commands) {
 }
 
 fn create_object_button(
-    parent: &mut ChildBuilder,
+    parent: &mut ChildSpawner,
     object_type: ObjectType,
     label: &str,
     is_selected: bool,
@@ -224,7 +224,7 @@ pub fn sync_selection_with_connection_system(
             spawn_material_buttons(&mut commands, selection_state.material);
         } else if was_enabled && !selection_state.is_enabled {
             for entity in material_button_query.iter() {
-                commands.entity(entity).despawn_recursive();
+                commands.entity(entity).despawn();
             }
         }
     }
@@ -266,7 +266,7 @@ fn spawn_material_buttons(commands: &mut Commands, current_material: ConnectionM
 }
 
 fn create_material_button(
-    parent: &mut ChildBuilder,
+    parent: &mut ChildSpawner,
     object_type: ObjectType,
     label: &str,
     is_selected: bool,

@@ -19,7 +19,7 @@ pub fn start_drag_system(
     windows: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
     draggable_query: Query<(Entity, &Transform, &RigidBody), With<Draggable>>,
-    rapier_context: Query<&RapierContext>,
+    rapier_context: RapierContext,
     selection_state: Res<crate::systems::damage::connection::SelectionState>,
 ) {
     // Don't start drag if connection mode is enabled
@@ -27,9 +27,7 @@ pub fn start_drag_system(
         return;
     }
 
-    let Ok(context) = rapier_context.get_single() else {
-        return;
-    };
+    let context = &rapier_context;
 
     if mouse_button.just_pressed(MouseButton::Left) && drag_state.dragging_entity.is_none() {
         if let Some(world_pos) = get_cursor_world_position(&windows, &camera_q) {

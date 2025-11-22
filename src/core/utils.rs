@@ -4,8 +4,8 @@ pub fn get_cursor_world_position(
     windows: &Query<&Window>,
     camera_q: &Query<(&Camera, &GlobalTransform)>,
 ) -> Option<Vec2> {
-    let window = windows.single();
-    let (camera, camera_transform) = camera_q.single();
+    let window = windows.single().ok()?;
+    let (camera, camera_transform) = camera_q.single().ok()?;
 
     if let Some(cursor_pos) = window.cursor_position() {
         camera

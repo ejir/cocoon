@@ -23,7 +23,7 @@ pub fn spawn_shockwave(commands: &mut Commands, position: Vec2, max_radius: f32,
 pub fn update_shockwave(
     mut commands: Commands,
     time: Res<Time>,
-    rapier_context: Query<&RapierContext>,
+    rapier_context: RapierContext,
     mut shockwave_query: Query<(Entity, &mut ShockwaveRing)>,
     mut physics_query: Query<(
         Entity,
@@ -39,9 +39,7 @@ pub fn update_shockwave(
     ), With<RigidBody>>,
     blocking_query: Query<(), Or<(With<IronBlock>, With<WoodenBox>)>>,
 ) {
-    let Ok(context) = rapier_context.get_single() else {
-        return;
-    };
+    let context = &rapier_context;
     
     for (shockwave_entity, mut shockwave) in shockwave_query.iter_mut() {
         shockwave.lifetime.tick(time.delta());
@@ -331,7 +329,7 @@ pub fn shockwave_joint_damage(
                     commands.entity(entity).remove::<ImpulseJoint>();
                     commands.entity(entity).remove::<JointHealth>();
                 } else if joint_health.current < joint_health.max * 0.5 {
-                    if commands.get_entity(entity).is_some() {
+                    if commands.get_entity(entity).is_ok() {
                         commands.entity(entity).insert(Fractured {
                             severity: 1.0 - (joint_health.current / joint_health.max),
                         });

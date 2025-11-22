@@ -151,7 +151,7 @@ pub fn update_hover_indicator(
     connectable_query: Query<(Entity, &Transform), With<Connectable>>,
     hover_query: Query<Entity, With<HoverIndicator>>,
     drag_conn_state: Res<DragConnectionState>,
-    rapier_context: Query<&RapierContext>,
+    rapier_context: RapierContext,
 ) {
     // Only show hover indicator when in connect mode and not currently dragging
     if !selection_state.is_enabled || drag_conn_state.is_dragging {
@@ -162,9 +162,7 @@ pub fn update_hover_indicator(
         return;
     }
 
-    let Ok(context) = rapier_context.get_single() else {
-        return;
-    };
+    let context = &rapier_context;
 
     if let Some(world_pos) = get_cursor_world_position(&windows, &camera_q) {
         // Use raycast to detect the object under cursor
@@ -240,7 +238,7 @@ pub fn start_drag_connection(
     camera_q: Query<(&Camera, &GlobalTransform)>,
     connectable_query: Query<(Entity, &Transform), With<Connectable>>,
     drag_state: Res<crate::systems::input::drag::DragState>,
-    rapier_context: Query<&RapierContext>,
+    rapier_context: RapierContext,
 ) {
     // Only work when connection mode is enabled
     if !selection_state.is_enabled {
@@ -252,9 +250,7 @@ pub fn start_drag_connection(
         return;
     }
 
-    let Ok(context) = rapier_context.get_single() else {
-        return;
-    };
+    let context = &rapier_context;
 
     if mouse_button.just_pressed(MouseButton::Left) {
         if let Some(world_pos) = get_cursor_world_position(&windows, &camera_q) {
@@ -322,15 +318,13 @@ pub fn end_drag_connection(
     global_transform_query: Query<&GlobalTransform>,
     mut velocity_query: Query<&mut Velocity>,
     line_query: Query<Entity, With<ConnectionDragLine>>,
-    rapier_context: Query<&RapierContext>,
+    rapier_context: RapierContext,
 ) {
     if !drag_conn_state.is_dragging {
         return;
     }
 
-    let Ok(context) = rapier_context.get_single() else {
-        return;
-    };
+    let context = &rapier_context;
 
     if mouse_button.just_released(MouseButton::Left) {
         if let Some(start_entity) = drag_conn_state.start_entity {
@@ -547,11 +541,10 @@ pub fn update_connection_visuals(
 pub fn break_joints_on_force_limit(
     mut commands: Commands,
     joint_query: Query<(Entity, &ImpulseJoint, &Connection)>,
-    _rapier_context: Query<&RapierContext>,
 ) {
     for (entity, _joint, connection) in joint_query.iter() {
         if connection.current_force > connection.break_force {
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).despawn();
         }
     }
 }
