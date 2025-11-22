@@ -23,7 +23,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libasound2-dev pkg-config libudev-dev
+          sudo apt-get install -y libasound2-dev pkg-config libudev-dev libwayland-dev libxkbcommon-dev
 
       - name: Cache cargo registry
         uses: actions/cache@v4
@@ -65,7 +65,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libasound2-dev pkg-config libudev-dev
+          sudo apt-get install -y libasound2-dev pkg-config libudev-dev libwayland-dev libxkbcommon-dev
 
       - name: Cache cargo registry
         uses: actions/cache@v4
@@ -124,7 +124,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libasound2-dev pkg-config libudev-dev
+          sudo apt-get install -y libasound2-dev pkg-config libudev-dev libwayland-dev libxkbcommon-dev
 
       - name: Cache cargo registry
         uses: actions/cache@v4
@@ -170,7 +170,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libasound2-dev pkg-config libudev-dev
+          sudo apt-get install -y libasound2-dev pkg-config libudev-dev libwayland-dev libxkbcommon-dev
 
       - name: Cache cargo registry
         uses: actions/cache@v4
